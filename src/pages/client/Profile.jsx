@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ClientLayout from '../../components/layout/ClientLayout'
+import { useAuth } from '../../context/AuthContext'
+import authApi from '../../utils/authApi'
+import appointmentApi from '../../utils/appointmentApi'
 
 const TABS = ['Personal Info', 'Security', 'Notification Preferences']
 
@@ -13,6 +16,10 @@ const NOTIF_TOGGLES = [
   { key: 'appReminder',     label: 'Appointment Reminder',  channel: 'app',   default: true  },
   { key: 'appConfirmed',    label: 'Booking Confirmed',     channel: 'app',   default: true  },
 ]
+
+function initialsOf(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
 
 function Toggle({ on, onChange }) {
   return (
@@ -32,33 +39,44 @@ function Toggle({ on, onChange }) {
 }
 
 export default function ClientProfile() {
+  const { user, updateUser } = useAuth()
   const [activeTab, setActiveTab] = useState('Personal Info')
+
+  // Personal info
+  const [form, setForm] = useState({ fullName: user?.name || '', phone: user?.phone || '' })
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [pwSaved, setPwSaved] = useState(false)
-  const [notifSaved, setNotifSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [totalBookings, setTotalBookings] = useState(null)
 
-  const [form, setForm] = useState({
-    fullName: 'Brian Otieno',
-    email: 'brian.otieno@gmail.com',
-    phone: '+254 712 345 678',
-    dob: '06/15/1995',
-    location: 'Nairobi, Kenya',
-    gender: 'Male',
-  })
-
-  const [pw, setPw] = useState({
-    current: '',
-    next: '',
-    confirm: '',
-  })
-
-  const [pwStrength, setPwStrength] = useState(0)
-
-  const [toggles, setToggles] = useState(
-    Object.fromEntries(NOTIF_TOGGLES.map(t => [t.key, t.default]))
-  )
+  useEffect(() => {
+    appointmentApi.listMine().then(({ appointments }) => setTotalBookings(appointments.length)).catch(() => {})
+  }, [])
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const handleSave = async () => {
+    setSaveError('')
+    setSaving(true)
+    try {
+      const { user: updated } = await authApi.updateProfile({ fullName: form.fullName, phone: form.phone })
+      updateUser({ ...updated, name: updated.fullName })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      setSaveError(err.message || 'Could not save changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Password
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' })
+  const [pwStrength, setPwStrength] = useState(0)
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwSaved, setPwSaved] = useState(false)
+  const [pwError, setPwError] = useState('')
+
   const setPwField = k => e => {
     setPw(p => ({ ...p, [k]: e.target.value }))
     if (k === 'next') {
@@ -72,20 +90,34 @@ export default function ClientProfile() {
     }
   }
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+  const handlePwSave = async () => {
+    setPwError('')
+    if (pw.next !== pw.confirm) {
+      setPwError('Passwords do not match.')
+      return
+    }
+    if (pw.next.length < 8) {
+      setPwError('New password must be at least 8 characters.')
+      return
+    }
+    setPwSaving(true)
+    try {
+      await authApi.changePassword(pw.current, pw.next)
+      setPw({ current: '', next: '', confirm: '' })
+      setPwStrength(0)
+      setPwSaved(true)
+      setTimeout(() => setPwSaved(false), 2500)
+    } catch (err) {
+      setPwError(err.message || 'Could not update password.')
+    } finally {
+      setPwSaving(false)
+    }
   }
 
-  const handlePwSave = () => {
-    setPwSaved(true)
-    setTimeout(() => setPwSaved(false), 2500)
-  }
-
-  const handleNotifSave = () => {
-    setNotifSaved(true)
-    setTimeout(() => setNotifSaved(false), 2500)
-  }
+  // Notification preferences — UI only for now, no backend model yet.
+  const [toggles, setToggles] = useState(
+    Object.fromEntries(NOTIF_TOGGLES.map(t => [t.key, t.default]))
+  )
 
   const strengthColor = ['bg-gray-200', 'bg-red-400', 'bg-yellow-400', 'bg-blue-400', 'bg-green-brand'][pwStrength]
   const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'][pwStrength]
@@ -119,15 +151,15 @@ export default function ClientProfile() {
               {/* Avatar */}
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-green-brand rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-                  BO
+                  {initialsOf(user?.name)}
                 </div>
-                <button className="text-green-brand text-xs font-medium hover:underline">
-                  Change photo
-                </button>
               </div>
 
               {/* Form grid */}
               <div className="card p-5">
+                {saveError && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-3">{saveError}</div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
@@ -135,52 +167,28 @@ export default function ClientProfile() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Email Address</label>
-                    <div className="relative">
-                      <input className="input pr-20" value={form.email} onChange={set('email')} />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-green-brand bg-green-50 px-2 py-0.5 rounded-full">
-                        Verified
-                      </span>
-                    </div>
+                    <input className="input bg-gray-50 text-gray-500" value={user?.email || ''} disabled title="Email can't be changed here yet" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Phone Number</label>
                     <input className="input" value={form.phone} onChange={set('phone')} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Date of Birth</label>
-                    <input className="input" value={form.dob} onChange={set('dob')} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
-                    <input className="input" value={form.location} onChange={set('location')} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Gender</label>
-                    <select className="input" value={form.gender} onChange={set('gender')}>
-                      {['Male', 'Female', 'Prefer not to say'].map(g => (
-                        <option key={g}>{g}</option>
-                      ))}
-                    </select>
                   </div>
                 </div>
 
                 <div className="flex gap-3 mt-5">
                   <button
                     onClick={handleSave}
-                    className={`text-sm px-5 py-2 rounded-lg font-medium transition-colors ${
+                    disabled={saving}
+                    className={`text-sm px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
                       saved
                         ? 'bg-green-100 text-green-700 border border-green-300'
                         : 'btn-primary'
                     }`}
                   >
-                    {saved ? '✓ Changes saved' : 'Save Changes'}
+                    {saving ? 'Saving…' : saved ? '✓ Changes saved' : 'Save Changes'}
                   </button>
                   <button
-                    onClick={() => setForm({
-                      fullName:'Brian Otieno', email:'brian.otieno@gmail.com',
-                      phone:'+254 712 345 678', dob:'06/15/1995',
-                      location:'Nairobi, Kenya', gender:'Male',
-                    })}
+                    onClick={() => setForm({ fullName: user?.name || '', phone: user?.phone || '' })}
                     className="btn-secondary text-sm px-5 py-2"
                   >
                     Discard
@@ -191,14 +199,10 @@ export default function ClientProfile() {
               {/* Account Info */}
               <div className="card p-5">
                 <h3 className="text-sm font-semibold text-gray-800 mb-4">Account Info</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1">Member since</div>
-                    <div className="text-sm font-semibold text-gray-800">June 2024</div>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <div className="text-xs text-gray-400 mb-1">Total bookings</div>
-                    <div className="text-sm font-semibold text-gray-800">24</div>
+                    <div className="text-sm font-semibold text-gray-800">{totalBookings ?? '—'}</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-400 mb-1">Status</div>
@@ -215,6 +219,9 @@ export default function ClientProfile() {
           <div className="max-w-lg space-y-4">
             <div className="card p-5">
               <h3 className="text-sm font-semibold text-gray-800 mb-4">Change Password</h3>
+              {pwError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-3">{pwError}</div>
+              )}
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Current Password</label>
@@ -244,11 +251,12 @@ export default function ClientProfile() {
               </div>
               <button
                 onClick={handlePwSave}
-                className={`mt-4 text-sm px-5 py-2 rounded-lg font-medium transition-colors ${
+                disabled={pwSaving}
+                className={`mt-4 text-sm px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
                   pwSaved ? 'bg-green-100 text-green-700 border border-green-300' : 'btn-primary'
                 }`}
               >
-                {pwSaved ? '✓ Password updated' : 'Update Password'}
+                {pwSaving ? 'Updating…' : pwSaved ? '✓ Password updated' : 'Update Password'}
               </button>
             </div>
 
@@ -258,8 +266,8 @@ export default function ClientProfile() {
               <p className="text-xs text-gray-500 mb-3">
                 Permanently delete your account and all your appointment data. This cannot be undone.
               </p>
-              <button className="text-xs px-4 py-2 border border-red-400 text-red-500 rounded-lg hover:bg-red-50 transition-colors font-medium">
-                Delete Account
+              <button disabled title="Account deletion isn't available yet" className="text-xs px-4 py-2 border border-red-200 text-red-300 rounded-lg cursor-not-allowed font-medium">
+                Delete Account (coming soon)
               </button>
             </div>
           </div>
@@ -268,6 +276,9 @@ export default function ClientProfile() {
         {/* ── NOTIFICATION PREFERENCES ── */}
         {activeTab === 'Notification Preferences' && (
           <div className="max-w-lg space-y-4">
+            <p className="text-xs text-gray-400">
+              These preferences aren't connected to a backend yet — appointment notifications are currently sent by default.
+            </p>
             {/* Email notifications */}
             <div className="card p-5">
               <h3 className="text-sm font-semibold text-gray-800 mb-4">
@@ -304,13 +315,8 @@ export default function ClientProfile() {
               </div>
             </div>
 
-            <button
-              onClick={handleNotifSave}
-              className={`text-sm px-5 py-2 rounded-lg font-medium transition-colors ${
-                notifSaved ? 'bg-green-100 text-green-700 border border-green-300' : 'btn-primary'
-              }`}
-            >
-              {notifSaved ? '✓ Preferences saved' : 'Save Preferences'}
+            <button disabled title="Not connected to a backend yet" className="text-sm px-5 py-2 rounded-lg font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+              Save Preferences
             </button>
           </div>
         )}

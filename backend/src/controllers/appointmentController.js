@@ -117,6 +117,15 @@ async function setStatus(req, res, next) {
   }
 }
 
+async function getQueuePosition(req, res, next) {
+  try {
+    const result = await appointmentService.getQueuePosition(req.user.id, req.params.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   book,
   listMine,
@@ -127,4 +136,5 @@ module.exports = {
   callNext,
   listForStaff,
   setStatus,
+  getQueuePosition,
 };

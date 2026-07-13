@@ -37,6 +37,7 @@ router.get('/staff', authenticate, authorize('staff'), appointmentController.lis
 // ── Client ───────────────────────────────────────────────────────────────────
 router.post('/', authenticate, authorize('client'), appointmentController.book);
 router.get('/mine', authenticate, authorize('client'), appointmentController.listMine);
+router.get('/:id/queue-position', authenticate, authorize('client'), appointmentController.getQueuePosition);
 router.patch('/:id/cancel', authenticate, authorize('client'), appointmentController.cancelMine);
 
 // ── Shared: institution_admin or staff (access level checked in service) ────

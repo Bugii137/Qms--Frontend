@@ -309,6 +309,34 @@ async function callNext(ownerId, appointmentId) {
   return setStatus({ id: ownerId, role: 'institution_admin' }, appointmentId, 'completed');
 }
 
+/**
+ * A client's live position in today's queue for one of their own approved
+ * appointments: how many other approved appointments for the same
+ * institution + service + date have an earlier time (i.e. are ahead of
+ * them). Powers the client dashboard's Queue Position widget without
+ * exposing other clients' identities.
+ */
+async function getQueuePosition(clientId, appointmentId) {
+  const { rows } = await query(
+    `SELECT * FROM appointments WHERE id = $1 AND client_id = $2`,
+    [appointmentId, clientId]
+  );
+  const appointment = rows[0];
+  if (!appointment) throw new AppError('Appointment not found', 404);
+  if (appointment.status !== 'approved') {
+    throw new AppError('This appointment is not currently in the queue', 400);
+  }
+
+  const { rows: aheadRows } = await query(
+    `SELECT COUNT(*) AS ahead FROM appointments
+     WHERE institution_id = $1 AND service_id = $2 AND appointment_date = $3
+       AND status = 'approved' AND appointment_time < $4`,
+    [appointment.institution_id, appointment.service_id, appointment.appointment_date, appointment.appointment_time]
+  );
+
+  return { position: Number(aheadRows[0].ahead) + 1 };
+}
+
 module.exports = {
   book,
   listByClient,
@@ -320,4 +348,5 @@ module.exports = {
   getQueueForInstitutionOwner,
   callNext,
   getByIdRaw,
+  getQueuePosition,
 };

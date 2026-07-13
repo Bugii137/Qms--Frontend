@@ -31,8 +31,16 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("jipange_user");
   };
 
+  const updateUser = (partial) => {
+    setUser(prev => {
+      const next = { ...prev, ...partial };
+      localStorage.setItem("jipange_user", JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

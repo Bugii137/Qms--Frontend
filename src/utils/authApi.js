@@ -7,6 +7,9 @@ const authApi = {
   resetPassword: (token, newPassword) =>
     api.post('/auth/reset-password', { token, newPassword }, { auth: false }),
   me: () => api.get('/auth/me'),
+  updateProfile: (payload) => api.put('/auth/me', payload),
+  changePassword: (currentPassword, newPassword) =>
+    api.post('/auth/change-password', { currentPassword, newPassword }),
 };
 
 export default authApi;

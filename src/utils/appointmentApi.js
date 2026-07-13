@@ -5,6 +5,7 @@ const appointmentApi = {
   book: (payload) => api.post('/appointments', payload),
   listMine: (status) => api.get(`/appointments/mine${status ? `?status=${status}` : ''}`),
   cancelMine: (id) => api.patch(`/appointments/${id}/cancel`),
+  getQueuePosition: (id) => api.get(`/appointments/${id}/queue-position`),
 
   // Institution admin
   listForInstitution: ({ status, date } = {}) => {

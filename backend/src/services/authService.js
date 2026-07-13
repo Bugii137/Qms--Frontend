@@ -125,4 +125,64 @@ async function getById(userId) {
   return toPublicUser(rows[0]);
 }
 
-module.exports = { register, login, requestPasswordReset, resetPassword, getById };
+/**
+ * Update the logged-in user's own name/phone. Email and role are
+ * intentionally not editable here — changing email would need its own
+ * re-verification flow, and role changes shouldn't be self-service.
+ */
+async function updateProfile(userId, { fullName, phone }) {
+  const setClauses = [];
+  const params = [userId];
+
+  if (fullName !== undefined) {
+    params.push(fullName);
+    setClauses.push(`full_name = $${params.length}`);
+  }
+  if (phone !== undefined) {
+    params.push(phone);
+    setClauses.push(`phone = $${params.length}`);
+  }
+  if (setClauses.length === 0) {
+    throw new AppError('No valid fields provided to update', 400);
+  }
+
+  const { rows } = await query(
+    `UPDATE users SET ${setClauses.join(', ')}, updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, full_name, email, phone, role`,
+    params
+  );
+
+  return toPublicUser(rows[0]);
+}
+
+/**
+ * Change password for a logged-in user who knows their current password
+ * (distinct from the forgot-password flow, which doesn't require it).
+ */
+async function changePassword(userId, { currentPassword, newPassword }) {
+  const { rows } = await query('SELECT * FROM users WHERE id = $1', [userId]);
+  const user = rows[0];
+  if (!user) throw new AppError('User not found', 404);
+
+  const matches = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!matches) {
+    throw new AppError('Current password is incorrect', 401);
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [
+    passwordHash,
+    userId,
+  ]);
+}
+
+module.exports = {
+  register,
+  login,
+  requestPasswordReset,
+  resetPassword,
+  getById,
+  updateProfile,
+  changePassword,
+};

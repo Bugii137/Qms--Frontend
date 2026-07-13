@@ -85,4 +85,38 @@ async function me(req, res, next) {
   }
 }
 
-module.exports = { register, login, forgotPassword, resetPassword, me };
+const updateProfileSchema = Joi.object({
+  fullName: Joi.string().min(2).max(150),
+  phone: Joi.string().max(30).allow('', null),
+}).min(1);
+
+const changePasswordSchema = Joi.object({
+  currentPassword: Joi.string().required(),
+  newPassword: Joi.string().min(8).required(),
+});
+
+async function updateProfile(req, res, next) {
+  try {
+    const { error, value } = updateProfileSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const user = await authService.updateProfile(req.user.id, value);
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function changePassword(req, res, next) {
+  try {
+    const { error, value } = changePasswordSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    await authService.changePassword(req.user.id, value);
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { register, login, forgotPassword, resetPassword, me, updateProfile, changePassword };
