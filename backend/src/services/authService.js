@@ -5,6 +5,7 @@ const { signToken } = require('../config/jwt');
 const { sendEmail } = require('../config/email');
 const { welcomeEmail, passwordResetEmail } = require('../utils/emailTemplates');
 const { AppError } = require('../middleware/errorHandler');
+const staffService = require('./staffService');
 
 const SALT_ROUNDS = 10;
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -109,6 +110,10 @@ async function resetPassword({ token, newPassword }) {
     resetRecord.user_id,
   ]);
   await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [resetRecord.id]);
+
+  // If this was a staff invite link, activate the staff assignment now
+  // that they've successfully set a password.
+  await staffService.activateByUserId(resetRecord.user_id);
 }
 
 async function getById(userId) {

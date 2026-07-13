@@ -36,4 +36,20 @@ function passwordResetEmail(fullName, resetUrl) {
   };
 }
 
-module.exports = { welcomeEmail, passwordResetEmail };
+function staffInviteEmail(fullName, institutionName, setPasswordUrl) {
+  return {
+    subject: `You've been added to ${institutionName} on JIPANGE`,
+    html: baseLayout(`
+      <p>Hi ${fullName},</p>
+      <p>${institutionName} has added you as a staff member on JIPANGE. Set your password to activate your account and get started.</p>
+      <p>
+        <a href="${setPasswordUrl}" style="background: #00A86B; color: #fff; padding: 10px 18px; border-radius: 6px; text-decoration: none;">
+          Set Your Password
+        </a>
+      </p>
+      <p>This link expires in 1 hour. If you weren't expecting this, you can ignore this email.</p>
+    `),
+  };
+}
+
+module.exports = { welcomeEmail, passwordResetEmail, staffInviteEmail };
