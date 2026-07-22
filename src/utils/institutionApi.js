@@ -12,6 +12,10 @@ const institutionApi = {
   getMine: () => api.get('/institutions/me'),
   create: (payload) => api.post('/institutions', payload),
   updateMine: (payload) => api.put('/institutions/me', payload),
+
+  // System admin
+  listForSystemAdmin: (status) => api.get(`/institutions/admin/all${status ? `?status=${status}` : ''}`),
+  setStatus: (id, status) => api.patch(`/institutions/admin/${id}/status`, { status }),
 };
 
 export default institutionApi;
