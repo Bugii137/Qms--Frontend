@@ -1,19 +1,50 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import StaffLayout from "../../components/layout/StaffLayout";
 import { useAuth } from "../../context/AuthContext";
 import { canEditProfile } from "../../utils/permissions";
+import { accessLevelToLabel } from "../../utils/accessLevel";
+import authApi from "../../utils/authApi";
+import staffApi from "../../utils/staffApi";
 
 export default function StaffProfile() {
-  const { user } = useAuth();
-  const editable = canEditProfile(user?.accessLevel);
-  const [saved, setSaved] = useState(false);
+  const { user, updateUser } = useAuth();
+  const [assignment, setAssignment] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const [form, setForm] = useState({
-    name: user?.name || "Staff Member",
-    email: user?.email || "",
-    phone: "+254 712 002 002",
-  });
+  const [form, setForm] = useState({ fullName: user?.name || "", phone: user?.phone || "" });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    staffApi.getMine()
+      .then(({ assignment }) => setAssignment(assignment))
+      .catch(err => setError(err.message || "Could not load your assignment."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load() }, [load]);
+
+  const accessLevel = accessLevelToLabel(assignment?.accessLevel || "view_only");
+  const editable = canEditProfile(accessLevel);
+
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    setError("");
+    setSaving(true);
+    try {
+      const { user: updated } = await authApi.updateProfile({ fullName: form.fullName, phone: form.phone });
+      updateUser({ ...updated, name: updated.fullName });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err.message || "Could not save changes.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <StaffLayout>
@@ -24,39 +55,44 @@ export default function StaffProfile() {
           <div className="col-span-2 card p-5">
             <div className="flex items-center gap-4 mb-5">
               <div className="w-14 h-14 bg-green-brand rounded-full flex items-center justify-center text-white text-lg font-bold">
-                {form.name.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
+                {(form.fullName || "?").split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
               </div>
               <div>
-                <div className="font-semibold text-gray-900 text-sm">{form.name}</div>
-                <div className="text-xs text-gray-400">{user?.institution}</div>
+                <div className="font-semibold text-gray-900 text-sm">{form.fullName}</div>
+                <div className="text-xs text-gray-400">{loading ? "…" : assignment?.institutionName}</div>
               </div>
             </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-4">{error}</div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
-                <input className="input" disabled={!editable} value={form.name} onChange={set("name")} />
+                <input className="input" disabled={!editable} value={form.fullName} onChange={set("fullName")} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Email Address</label>
-                <input className="input" disabled={!editable} value={form.email} onChange={set("email")} />
+                <input className="input bg-gray-50 text-gray-500" disabled value={user?.email || ""} title="Email can't be changed here yet" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Phone Number</label>
                 <input className="input" disabled={!editable} value={form.phone} onChange={set("phone")} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Assigned Service</label>
-                <input className="input bg-gray-50" disabled value={user?.assignedService || "Unassigned"} />
+                <label className="block text-xs font-medium text-gray-600 mb-1">Job Title</label>
+                <input className="input bg-gray-50" disabled value={assignment?.jobTitle || "Unassigned"} />
               </div>
             </div>
 
             {editable ? (
               <button
-                onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2500) }}
-                className={`mt-4 text-sm px-5 py-2 rounded-lg font-medium transition-colors ${saved ? "bg-green-100 text-green-700 border border-green-300" : "btn-primary"}`}
+                onClick={handleSave}
+                disabled={saving}
+                className={`mt-4 text-sm px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${saved ? "bg-green-100 text-green-700 border border-green-300" : "btn-primary"}`}
               >
-                {saved ? "✓ Changes saved" : "Save Changes"}
+                {saving ? "Saving…" : saved ? "✓ Changes saved" : "Save Changes"}
               </button>
             ) : (
               <p className="text-xs text-gray-400 mt-4">
@@ -72,18 +108,18 @@ export default function StaffProfile() {
               Set by your Institution Admin. This determines what actions you can perform.
             </div>
             <span className={`inline-block text-xs font-semibold px-3 py-1.5 rounded-full ${
-              user?.accessLevel === "View Only" ? "bg-gray-100 text-gray-600" :
-              user?.accessLevel === "Full Access" ? "bg-navy/10 text-navy" :
+              accessLevel === "View Only" ? "bg-gray-100 text-gray-600" :
+              accessLevel === "Full Access" ? "bg-navy/10 text-navy" :
               "bg-green-100 text-green-700"
             }`}>
-              {user?.accessLevel || "View Only"}
+              {accessLevel}
             </span>
             <ul className="text-xs text-gray-500 mt-4 space-y-1.5 list-disc list-inside">
               <li>View queue and appointments</li>
-              {(user?.accessLevel === "Manage Appointments" || user?.accessLevel === "Full Access") && (
+              {(accessLevel === "Manage Appointments" || accessLevel === "Full Access") && (
                 <li>Approve / Reject / Call Next</li>
               )}
-              {user?.accessLevel === "Full Access" && (
+              {accessLevel === "Full Access" && (
                 <li>Edit own profile details</li>
               )}
             </ul>
