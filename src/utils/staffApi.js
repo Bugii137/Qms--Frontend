@@ -2,7 +2,7 @@ import api from './api';
 
 const staffApi = {
   listByOwner: () => api.get('/staff'),
-  invite: (payload) => api.post('/staff', payload),
+  create: (payload) => api.post('/staff', payload),
   update: (id, payload) => api.put(`/staff/${id}`, payload),
   setStatus: (id, status) => api.patch(`/staff/${id}/status`, { status }),
   remove: (id) => api.delete(`/staff/${id}`),

@@ -1,11 +1,10 @@
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 const { query, getClient } = require('../db');
 const { sendEmail } = require('../config/email');
-const { staffInviteEmail } = require('../utils/emailTemplates');
+const { staffCredentialsEmail } = require('../utils/emailTemplates');
 const { AppError } = require('../middleware/errorHandler');
 
-const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const SALT_ROUNDS = 10;
 
 function toPublicStaff(row) {
   return {
@@ -53,11 +52,15 @@ async function listByOwner(ownerId) {
  * - If a user with that email already exists, they're linked as-is
  *   (their existing password stays; they just get added to this institution).
  * - If not, a new user account is created with role 'staff' and a random
- *   unusable password, then a set-password invite link is emailed to them
- *   (reusing the password_reset_tokens flow — "set your password" and
- *   "reset your password" are the same mechanism from the DB's point of view).
+/**
+ * Create a staff account with a password the institution_admin sets
+ * directly — no email dependency for the account to become usable.
+ * The staff member can log in immediately with the email/password the
+ * admin gave them. A credentials email is still attempted as a
+ * best-effort courtesy notification, but its failure never blocks
+ * account creation or login.
  */
-async function invite(ownerId, { fullName, email, phone, jobTitle, accessLevel }) {
+async function create(ownerId, { fullName, email, phone, jobTitle, accessLevel, password }) {
   const institution = await getOwnedInstitution(ownerId);
 
   const client = await getClient();
@@ -67,50 +70,33 @@ async function invite(ownerId, { fullName, email, phone, jobTitle, accessLevel }
     let { rows: userRows } = await client.query('SELECT * FROM users WHERE email = $1', [email]);
     let user = userRows[0];
 
-    if (!user) {
-      const randomPassword = crypto.randomBytes(24).toString('hex');
-      const passwordHash = await bcrypt.hash(randomPassword, 10);
-
-      const inserted = await client.query(
-        `INSERT INTO users (full_name, email, phone, password_hash, role)
-         VALUES ($1, $2, $3, $4, 'staff')
-         RETURNING *`,
-        [fullName, email, phone || null, passwordHash]
-      );
-      user = inserted.rows[0];
+    if (user) {
+      throw new AppError('An account with this email already exists', 409);
     }
 
-    const existingLink = await client.query(
-      'SELECT id FROM institution_staff WHERE institution_id = $1 AND user_id = $2',
-      [institution.id, user.id]
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+    const inserted = await client.query(
+      `INSERT INTO users (full_name, email, phone, password_hash, role)
+       VALUES ($1, $2, $3, $4, 'staff')
+       RETURNING *`,
+      [fullName, email, phone || null, passwordHash]
     );
-    if (existingLink.rows[0]) {
-      throw new AppError('This person is already on your staff list', 409);
-    }
+    user = inserted.rows[0];
 
     const { rows } = await client.query(
       `INSERT INTO institution_staff (institution_id, user_id, job_title, access_level, status)
-       VALUES ($1, $2, $3, $4, 'invited')
+       VALUES ($1, $2, $3, $4, 'active')
        RETURNING *`,
       [institution.id, user.id, jobTitle || 'Receptionist', accessLevel || 'view_only']
     );
 
-    // Issue a set-password token (same table/mechanism as forgot-password).
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
-
-    await client.query(
-      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
-       VALUES ($1, $2, $3)`,
-      [user.id, tokenHash, expiresAt]
-    );
-
     await client.query('COMMIT');
 
-    const setPasswordUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${rawToken}`;
-    const { subject, html } = staffInviteEmail(user.full_name, institution.name, setPasswordUrl);
-    await sendEmail({ to: user.email, subject, html });
+    // Best-effort only — the account is already fully usable with the
+    // password the admin set, regardless of whether this email sends.
+    const { subject, html } = staffCredentialsEmail(user.full_name, institution.name, user.email);
+    sendEmail({ to: user.email, subject, html });
 
     return toPublicStaff({ ...rows[0], full_name: user.full_name, email: user.email, phone: user.phone });
   } catch (err) {
@@ -220,4 +206,4 @@ async function activateByUserId(userId) {
   );
 }
 
-module.exports = { listByOwner, invite, update, setStatus, remove, getMine, activateByUserId };
+module.exports = { listByOwner, create, update, setStatus, remove, getMine, activateByUserId };

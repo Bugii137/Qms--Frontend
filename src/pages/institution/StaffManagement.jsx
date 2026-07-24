@@ -4,7 +4,7 @@ import staffApi from "../../utils/staffApi";
 import { accessLevelToValue } from "../../utils/accessLevel";
 
 const STATUS_BADGE = { active: "badge-active", inactive: "badge-inactive", invited: "badge-pending" };
-const STATUS_LABEL = { active: "Active", inactive: "Inactive", invited: "Pending Invite" };
+const STATUS_LABEL = { active: "Active", inactive: "Inactive", invited: "Invited (legacy)" };
 
 const AVATAR_COLORS = ["bg-navy", "bg-green-600", "bg-purple-600", "bg-teal-600", "bg-yellow-500", "bg-gray-500", "bg-blue-500", "bg-red-500"];
 function colorFor(id) {
@@ -14,7 +14,14 @@ function initialsOf(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-const EMPTY_FORM = { fullName: "", email: "", phone: "", jobTitle: "Receptionist", access: "Manage Appointments" };
+const EMPTY_FORM = { fullName: "", email: "", phone: "", jobTitle: "Receptionist", access: "Manage Appointments", password: "" };
+
+function generatePassword() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let out = "";
+  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
 
 export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
@@ -40,26 +47,31 @@ export default function StaffManagement() {
 
   useEffect(() => { load() }, [load]);
 
-  const handleInvite = async () => {
+  const handleCreate = async () => {
     setFormError("");
-    if (!form.fullName || !form.email) {
-      setFormError("Full name and email are required.");
+    if (!form.fullName || !form.email || !form.password) {
+      setFormError("Full name, email, and password are required.");
+      return;
+    }
+    if (form.password.length < 8) {
+      setFormError("Password must be at least 8 characters.");
       return;
     }
     setSubmitting(true);
     try {
-      await staffApi.invite({
+      await staffApi.create({
         fullName: form.fullName,
         email: form.email,
         phone: form.phone,
         jobTitle: form.jobTitle,
         accessLevel: accessLevelToValue(form.access),
+        password: form.password,
       });
       setForm(EMPTY_FORM);
       setShowForm(false);
       load();
     } catch (err) {
-      setFormError(err.message || "Could not send invite.");
+      setFormError(err.message || "Could not create this staff account.");
     } finally {
       setSubmitting(false);
     }
@@ -181,14 +193,28 @@ export default function StaffManagement() {
                   {["View Only","Manage Appointments","Full Access"].map(a => <option key={a}>{a}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Password</label>
+                <div className="flex gap-2">
+                  <input className="input text-sm flex-1" placeholder="At least 8 characters" value={form.password} onChange={set("password")} />
+                  <button
+                    type="button"
+                    className="btn-secondary text-xs px-3 whitespace-nowrap"
+                    onClick={() => setForm(f => ({ ...f, password: generatePassword() }))}
+                  >
+                    Generate
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">Share this password with them directly — they'll use it to log in.</p>
+              </div>
             </div>
             <div className="mt-4 flex gap-2">
-              <button disabled={submitting} className="btn-primary text-xs px-4 py-2 disabled:opacity-50" onClick={handleInvite}>
-                {submitting ? 'Sending…' : 'Send Invite'}
+              <button disabled={submitting} className="btn-primary text-xs px-4 py-2 disabled:opacity-50" onClick={handleCreate}>
+                {submitting ? 'Creating…' : 'Create Account'}
               </button>
               <button className="btn-secondary text-xs px-4 py-2" onClick={() => setShowForm(false)}>Cancel</button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">An invitation email will be sent to the staff member</p>
+            <p className="text-xs text-gray-400 mt-2">They can sign in immediately with this email and password.</p>
           </div>
         )}
       </div>

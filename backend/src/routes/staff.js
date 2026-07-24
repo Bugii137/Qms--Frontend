@@ -10,7 +10,7 @@ router.get('/me', authenticate, authorize('staff'), staffController.getMine);
 
 // ── Institution admin ─────────────────────────────────────────────────────────
 router.get('/', authenticate, authorize('institution_admin'), staffController.listByOwner);
-router.post('/', authenticate, authorize('institution_admin'), staffController.invite);
+router.post('/', authenticate, authorize('institution_admin'), staffController.create);
 router.put('/:id', authenticate, authorize('institution_admin'), staffController.update);
 router.patch('/:id/status', authenticate, authorize('institution_admin'), staffController.setStatus);
 router.delete('/:id', authenticate, authorize('institution_admin'), staffController.remove);

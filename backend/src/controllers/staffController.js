@@ -4,12 +4,13 @@ const staffService = require('../services/staffService');
 const ACCESS_LEVELS = ['view_only', 'manage_appointments', 'full_access'];
 const JOB_TITLES = ['Receptionist', 'Doctor', 'Nurse', 'Lab Technician', 'Administrator'];
 
-const inviteSchema = Joi.object({
+const createSchema = Joi.object({
   fullName: Joi.string().min(2).max(150).required(),
   email: Joi.string().email().required(),
   phone: Joi.string().max(30).allow('', null),
   jobTitle: Joi.string().valid(...JOB_TITLES).default('Receptionist'),
   accessLevel: Joi.string().valid(...ACCESS_LEVELS).default('view_only'),
+  password: Joi.string().min(8).required(),
 });
 
 const updateSchema = Joi.object({
@@ -30,12 +31,12 @@ async function listByOwner(req, res, next) {
   }
 }
 
-async function invite(req, res, next) {
+async function create(req, res, next) {
   try {
-    const { error, value } = inviteSchema.validate(req.body);
+    const { error, value } = createSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const staffMember = await staffService.invite(req.user.id, value);
+    const staffMember = await staffService.create(req.user.id, value);
     res.status(201).json({ staff: staffMember });
   } catch (err) {
     next(err);
@@ -84,4 +85,4 @@ async function getMine(req, res, next) {
   }
 }
 
-module.exports = { listByOwner, invite, update, setStatus, remove, getMine };
+module.exports = { listByOwner, create, update, setStatus, remove, getMine };
