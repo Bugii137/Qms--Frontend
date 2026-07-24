@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/authenticate');
 
-// TODO: replace with real admin endpoints (controllers/adminController.js).
-// Placeholder so the server boots and the route is reachable during development.
-router.get('/', authenticate, (req, res) => {
-  res.json({ message: 'admin route not yet implemented' });
-});
+const adminController = require('../controllers/adminController');
+const { authenticate } = require('../middleware/authenticate');
+const { authorize } = require('../middleware/authorize');
+
+router.get('/users', authenticate, authorize('admin'), adminController.listUsers);
+router.patch('/users/:id/status', authenticate, authorize('admin'), adminController.setUserActive);
 
 module.exports = router;
