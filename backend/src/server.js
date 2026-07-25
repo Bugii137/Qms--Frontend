@@ -3,6 +3,7 @@ const express = require('express');
 const cors    = require('cors');
 
 const { errorHandler }   = require('./middleware/errorHandler');
+const settingsService     = require('./services/settingsService');
 const authRoutes          = require('./routes/auth');
 const institutionRoutes   = require('./routes/institutions');
 const serviceRoutes       = require('./routes/services');
@@ -29,6 +30,30 @@ app.get('/api/health', (req, res) => {
     message:   'Jipange API is running',
     timestamp: new Date(),
   });
+});
+
+// ── Maintenance mode gate ────────────────────────────────────────────────────
+// When enabled, blocks everything except the health check, login (so an
+// admin can still sign in), and the admin API itself (so an admin can turn
+// maintenance mode back off). Everything else — including registration and
+// all normal usage — gets a 503 with the configured message.
+const MAINTENANCE_ALLOWLIST = ['/api/health', '/api/auth/login', '/api/admin'];
+
+app.use(async (req, res, next) => {
+  const isAllowed = MAINTENANCE_ALLOWLIST.some(path => req.path.startsWith(path));
+  if (isAllowed) return next();
+
+  try {
+    const underMaintenance = await settingsService.isMaintenanceMode();
+    if (!underMaintenance) return next();
+
+    const settings = await settingsService.getSettings();
+    return res.status(503).json({ error: settings.maintenanceMessage });
+  } catch (err) {
+    // If the settings check itself fails (e.g. DB hiccup), fail open rather
+    // than taking the whole platform down over an unrelated DB error.
+    return next();
+  }
 });
 
 // ── Routes ────────────────────────────────────────────────────────────────────
