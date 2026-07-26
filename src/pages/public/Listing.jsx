@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import institutionApi from '../../utils/institutionApi'
 
 const CAT_COLORS = {
@@ -37,8 +37,9 @@ function PublicNav() {
 
 export default function ListingPage() {
   const navigate = useNavigate()
-  const [search, setSearch] = useState('')
-  const [cat, setCat] = useState('All Categories')
+  const [searchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('search') || '')
+  const [cat, setCat] = useState(searchParams.get('category') || 'All Categories')
   const [institutions, setInstitutions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

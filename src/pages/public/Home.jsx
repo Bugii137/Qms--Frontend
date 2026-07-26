@@ -1,17 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import institutionApi from '../../utils/institutionApi'
 
-const FEATURED = [
-  { initials:'CGH', cat:'Hospital',   name:'City General Hospital',   loc:'Nairobi', rating:'4.8', desc:'Comprehensive healthcare services including specialist consultations and lab tests.' },
-  { initials:'NSB', cat:'Bank',       name:'National Savings Bank',   loc:'Westlands', rating:'4.5', desc:'Full-service banking with loans, savings, and investment products for all Kenyans.' },
-  { initials:'HC',  cat:'Government', name:'Huduma Centre CBD',       loc:'Nairobi CBD', rating:'4.2', desc:'One-stop government service centre for ID, passports, NHIF, NSSF and more.' },
-]
-const CAT_COLORS = { Hospital:'bg-blue-100 text-blue-700', Bank:'bg-purple-100 text-purple-700', Government:'bg-yellow-100 text-yellow-700', University:'bg-green-100 text-green-700' }
+const CAT_COLORS = { Hospital:'bg-blue-100 text-blue-700', Bank:'bg-purple-100 text-purple-700', Government:'bg-yellow-100 text-yellow-700', University:'bg-green-100 text-green-700', Other:'bg-gray-100 text-gray-700' }
+
+function initialsOf(name) {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase()
+}
 
 export default function HomePage() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [cat, setCat] = useState('All Categories')
+  const [featured, setFeatured] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError('')
+
+    institutionApi
+      .listPublic({})
+      .then(({ institutions }) => {
+        if (!cancelled) setFeatured(institutions.slice(0, 3))
+      })
+      .catch(err => {
+        if (!cancelled) setError(err.message || 'Could not load institutions.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [])
 
   return (
     <div className="min-h-screen bg-white font-poppins">
@@ -47,6 +70,7 @@ export default function HomePage() {
             placeholder="Search institution name..."
             value={search}
             onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') navigate(`/institutions?search=${encodeURIComponent(search)}`) }}
           />
           <select
             className="px-3 py-2.5 text-sm bg-gray-100 border-l border-gray-200 text-gray-600 outline-none"
@@ -55,12 +79,12 @@ export default function HomePage() {
           >
             {['All Categories','Hospital','Bank','Government','University'].map(c => <option key={c}>{c}</option>)}
           </select>
-          <button className="btn-primary px-5 rounded-none text-sm" onClick={() => navigate('/institutions')}>Search</button>
+          <button className="btn-primary px-5 rounded-none text-sm" onClick={() => navigate(`/institutions?search=${encodeURIComponent(search)}&category=${cat === 'All Categories' ? '' : encodeURIComponent(cat)}`)}>Search</button>
         </div>
         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-blue-200">
           <span>Popular:</span>
           {['City Hospital','National Bank','Huduma Centre'].map(t => (
-            <button key={t} className="bg-white/10 text-white px-2.5 py-0.5 rounded-full hover:bg-white/20 transition-colors">{t}</button>
+            <button key={t} className="bg-white/10 text-white px-2.5 py-0.5 rounded-full hover:bg-white/20 transition-colors" onClick={() => navigate(`/institutions?search=${encodeURIComponent(t)}`)}>{t}</button>
           ))}
         </div>
       </section>
@@ -72,25 +96,39 @@ export default function HomePage() {
             <h2 className="text-lg font-semibold text-gray-900">Featured Institutions</h2>
             <button className="text-green-brand text-sm hover:underline" onClick={() => navigate('/institutions')}>View all →</button>
           </div>
-          <div className="grid grid-cols-3 gap-5">
-            {FEATURED.map(inst => (
-              <div key={inst.name} className="card overflow-hidden">
-                <div className="h-28 bg-gray-100 flex items-center justify-center text-xs text-gray-400 relative">
-                  <span className={`absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded ${CAT_COLORS[inst.cat]}`}>{inst.cat}</span>
-                  Institution Image
-                </div>
-                <div className="p-4">
-                  <div className="font-semibold text-sm text-gray-900 mb-1">{inst.name}</div>
-                  <div className="flex items-center gap-3 text-xs text-gray-500 mb-2">
-                    <span>📍 {inst.loc}</span>
-                    <span>★ {inst.rating}</span>
+
+          {loading && (
+            <p className="text-sm text-gray-500">Loading institutions…</p>
+          )}
+
+          {!loading && error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2">{error}</div>
+          )}
+
+          {!loading && !error && featured.length === 0 && (
+            <p className="text-sm text-gray-500">No institutions have registered on JIPANGE yet.</p>
+          )}
+
+          {!loading && !error && featured.length > 0 && (
+            <div className="grid grid-cols-3 gap-5">
+              {featured.map(inst => (
+                <div key={inst.id} className="card overflow-hidden">
+                  <div className="h-28 bg-gray-100 flex items-center justify-center text-xs text-gray-400 relative">
+                    <span className={`absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded ${CAT_COLORS[inst.category] || CAT_COLORS.Other}`}>{inst.category}</span>
+                    {initialsOf(inst.name)}
                   </div>
-                  <p className="text-xs text-gray-500 mb-3 leading-relaxed">{inst.desc}</p>
-                  <button className="btn-primary w-full text-xs py-1.5" onClick={() => navigate('/institutions/1')}>View &amp; Book</button>
+                  <div className="p-4">
+                    <div className="font-semibold text-sm text-gray-900 mb-1">{inst.name}</div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 mb-2">
+                      <span>📍 {inst.address || 'Location not set'}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3 leading-relaxed line-clamp-2">{inst.description || 'No description provided.'}</p>
+                    <button className="btn-primary w-full text-xs py-1.5" onClick={() => navigate(`/institutions/${inst.id}`)}>View &amp; Book</button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
