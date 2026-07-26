@@ -5,6 +5,8 @@ import { useAuth } from './context/AuthContext'
 import HomePage        from './pages/public/Home'
 import ListingPage     from './pages/public/Listing'
 import DetailsPage     from './pages/public/Details'
+import AboutPage       from './pages/public/About'
+import ContactPage     from './pages/public/Contact'
 
 // Auth pages
 import LoginPage          from './pages/auth/Login'
@@ -67,6 +69,8 @@ export default function App() {
       <Route path="/home"               element={<HomePage />} />
       <Route path="/institutions"       element={<ListingPage />} />
       <Route path="/institutions/:id"   element={<DetailsPage />} />
+      <Route path="/about"              element={<AboutPage />} />
+      <Route path="/contact"            element={<ContactPage />} />
 
       {/* Auth */}
       <Route path="/login"           element={<LoginPage />} />

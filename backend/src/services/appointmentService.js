@@ -195,17 +195,35 @@ async function setStatus(user, appointmentId, status) {
     throw new AppError('Invalid status value', 400);
   }
 
-  await assertManagesAppointment(user, appointmentId);
+  const existing = await assertManagesAppointment(user, appointmentId);
+
+  // When an appointment is approved, assign it a queue token if it doesn't
+  // already have one. The token is the next number in that institution's
+  // ticket sequence for that day (1, 2, 3, ...) — the same "take a ticket,
+  // wait to be called" model used at a real service counter, rather than a
+  // live position that shifts as other people are served.
+  let queueNumber = existing.queue_number;
+  if (status === 'approved' && !queueNumber) {
+    const { rows: seqRows } = await query(
+      `SELECT COALESCE(MAX(queue_number), 0) + 1 AS next_number
+       FROM appointments
+       WHERE institution_id = $1 AND appointment_date = $2 AND queue_number IS NOT NULL`,
+      [existing.institution_id, existing.appointment_date]
+    );
+    queueNumber = seqRows[0].next_number;
+  }
 
   const { rows } = await query(
-    `UPDATE appointments SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING client_id`,
-    [status, appointmentId]
+    `UPDATE appointments SET status = $1, queue_number = COALESCE($2, queue_number), updated_at = NOW() WHERE id = $3 RETURNING client_id`,
+    [status, queueNumber, appointmentId]
   );
 
   const updated = await getByIdRaw(appointmentId);
 
   const statusMessages = {
-    approved: `Your appointment for ${updated.serviceName} at ${updated.institutionName} was approved.`,
+    approved: queueNumber
+      ? `Your appointment for ${updated.serviceName} at ${updated.institutionName} was approved. Your queue token is #${queueNumber}.`
+      : `Your appointment for ${updated.serviceName} at ${updated.institutionName} was approved.`,
     rejected: `Your appointment for ${updated.serviceName} at ${updated.institutionName} was declined.`,
     completed: `Your appointment for ${updated.serviceName} at ${updated.institutionName} is complete.`,
     cancelled: `Your appointment for ${updated.serviceName} at ${updated.institutionName} was cancelled.`,
@@ -289,6 +307,13 @@ async function getQueueForInstitutionOwner(ownerId) {
       byService[appt.serviceId] = { serviceId: appt.serviceId, serviceName: appt.serviceName, waiting: [] };
     }
     byService[appt.serviceId].waiting.push(appt);
+  }
+
+  // Order each service's line by queue token (the order tokens were
+  // issued at approval), not by the originally requested appointment
+  // time — the token is what determines when a client gets called.
+  for (const group of Object.values(byService)) {
+    group.waiting.sort((a, b) => (a.queueNumber || 0) - (b.queueNumber || 0));
   }
 
   return Object.values(byService);

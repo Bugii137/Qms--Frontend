@@ -72,8 +72,13 @@ export default function QueueManagement() {
                   <div className="text-[10px] font-semibold text-green-700 uppercase tracking-wider mb-1">
                     Now Serving
                   </div>
-                  <div className="text-base font-bold text-gray-900 mb-2">
-                    {nowServing ? nowServing.clientName : '—'}
+                  <div className="flex items-center gap-2 mb-2">
+                    {nowServing?.queueNumber && (
+                      <span className="text-xs font-bold text-green-700 bg-green-100 rounded px-1.5 py-0.5">#{nowServing.queueNumber}</span>
+                    )}
+                    <div className="text-base font-bold text-gray-900">
+                      {nowServing ? nowServing.clientName : '—'}
+                    </div>
                   </div>
                   {nowServing && (
                     <button
@@ -95,11 +100,11 @@ export default function QueueManagement() {
                     <div className="text-xs text-gray-400 italic">No one waiting</div>
                   ) : (
                     <div className="space-y-2">
-                      {rest.map((w, i) => (
+                      {rest.map((w) => (
                         <div key={w.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
                           <div className="flex items-center gap-2.5">
-                            <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                              {i + 1}
+                            <span className="w-8 h-5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                              {w.queueNumber ? `#${w.queueNumber}` : '—'}
                             </span>
                             <span className="text-sm text-gray-800">{w.clientName}</span>
                           </div>

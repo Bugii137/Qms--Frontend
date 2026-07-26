@@ -26,7 +26,6 @@ export default function ClientDashboard() {
   const { user } = useAuth()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [queuePosition, setQueuePosition] = useState(null)
   const [queueTarget, setQueueTarget] = useState(null)
 
   useEffect(() => {
@@ -34,24 +33,16 @@ export default function ClientDashboard() {
 
     appointmentApi
       .listMine()
-      .then(async ({ appointments }) => {
+      .then(({ appointments }) => {
         if (cancelled) return
         setAppointments(appointments)
 
         const today = new Date().toISOString().slice(0, 10)
         const nextInQueue = appointments
-          .filter(a => a.status === 'approved' && a.appointmentDate >= today)
+          .filter(a => a.status === 'approved' && a.queueNumber && a.appointmentDate >= today)
           .sort((a, b) => (a.appointmentDate + a.appointmentTime).localeCompare(b.appointmentDate + b.appointmentTime))[0]
 
-        if (nextInQueue) {
-          setQueueTarget(nextInQueue)
-          try {
-            const { position } = await appointmentApi.getQueuePosition(nextInQueue.id)
-            if (!cancelled) setQueuePosition(position)
-          } catch {
-            // Not currently in an active queue (e.g. date is in the future) — that's fine, just don't show a position.
-          }
-        }
+        if (nextInQueue) setQueueTarget(nextInQueue)
       })
       .finally(() => { if (!cancelled) setLoading(false) })
 
@@ -134,12 +125,12 @@ export default function ClientDashboard() {
 
           {/* Right column */}
           <div className="space-y-4">
-            {/* Queue position */}
-            {queueTarget && queuePosition !== null && (
+            {/* Queue token */}
+            {queueTarget && (
               <div className="card p-4 border-l-4 border-l-yellow-400">
-                <h2 className="font-semibold text-gray-800 text-sm mb-3">Queue Position</h2>
-                <div className="text-5xl font-bold text-navy text-center mb-1">{queuePosition}</div>
-                <div className="text-xs text-gray-500 text-center mb-3">Your position</div>
+                <h2 className="font-semibold text-gray-800 text-sm mb-3">Your Queue Token</h2>
+                <div className="text-5xl font-bold text-navy text-center mb-1">#{queueTarget.queueNumber}</div>
+                <div className="text-xs text-gray-500 text-center mb-3">Show this number when you arrive — you'll be called when it's your turn.</div>
                 <div className="text-center mb-1">
                   <div className="text-sm font-medium text-gray-800">{queueTarget.institutionName}</div>
                   <div className="text-xs text-gray-500">{queueTarget.serviceName}</div>

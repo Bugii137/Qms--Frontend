@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import institutionApi from '../../utils/institutionApi'
 import serviceApi from '../../utils/serviceApi'
 import appointmentApi from '../../utils/appointmentApi'
+import PublicNav from '../../components/common/PublicNav'
 
 function initialsOf(name) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase()
@@ -96,23 +97,7 @@ export default function DetailsPage() {
   return (
     <div className="min-h-screen bg-page font-poppins">
       {/* Navbar */}
-      <nav className="bg-white border-b border-gray-200 px-8 h-14 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center cursor-pointer" onClick={() => navigate('/home')}>
-          <img src="/logo.png" alt="JIPANGE" className="h-8 w-auto" />
-        </div>
-        <div className="flex items-center gap-6 text-sm text-gray-600">
-          <a className="hover:text-navy cursor-pointer" onClick={() => navigate('/home')}>Home</a>
-          <a className="hover:text-navy cursor-pointer" onClick={() => navigate('/institutions')}>Institutions</a>
-          <a className="hover:text-navy cursor-pointer">About</a>
-          <a className="hover:text-navy cursor-pointer">Contact</a>
-        </div>
-        <div className="flex items-center gap-2">
-          {!user && <>
-            <button className="btn-secondary text-xs px-4 py-1.5" onClick={() => navigate('/login')}>Login</button>
-            <button className="btn-primary text-xs px-4 py-1.5" onClick={() => navigate('/register')}>Register</button>
-          </>}
-        </div>
-      </nav>
+      <PublicNav active="institutions" />
 
       {/* Breadcrumb */}
       <div className="px-8 pt-4 text-xs text-gray-500">
@@ -235,6 +220,13 @@ export default function DetailsPage() {
                   onClick={handleBook}
                 >
                   {booking ? 'Booking…' : user ? 'Book Appointment' : 'Login to Book'}
+                </button>
+
+                <button
+                  className="w-full py-2 text-xs text-gray-500 hover:text-navy mt-2"
+                  onClick={() => navigate('/institutions')}
+                >
+                  ← Back to Institutions
                 </button>
               </>
             )}

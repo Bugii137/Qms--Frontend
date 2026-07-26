@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import institutionApi from '../../utils/institutionApi'
+import PublicNav from '../../components/common/PublicNav'
 
 const CAT_COLORS = {
   Hospital: 'bg-blue-100 text-blue-700',
@@ -12,27 +13,6 @@ const CAT_COLORS = {
 
 function initialsOf(name) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase()
-}
-
-function PublicNav() {
-  const navigate = useNavigate()
-  return (
-    <nav className="bg-white border-b border-gray-200 px-8 h-14 flex items-center justify-between sticky top-0 z-10">
-      <div className="flex items-center cursor-pointer" onClick={() => navigate('/home')}>
-          <img src="/logo.png" alt="JIPANGE" className="h-8 w-auto" />
-        </div>
-      <div className="flex items-center gap-6 text-sm text-gray-600">
-        <a className="hover:text-navy cursor-pointer" onClick={() => navigate('/home')}>Home</a>
-        <a className="text-navy font-medium cursor-pointer">Institutions</a>
-        <a className="hover:text-navy cursor-pointer">About</a>
-        <a className="hover:text-navy cursor-pointer">Contact</a>
-      </div>
-      <div className="flex items-center gap-2">
-        <button className="btn-secondary text-xs px-4 py-1.5" onClick={() => navigate('/login')}>Login</button>
-        <button className="btn-primary text-xs px-4 py-1.5" onClick={() => navigate('/register')}>Register</button>
-      </div>
-    </nav>
-  )
 }
 
 export default function ListingPage() {
@@ -66,7 +46,7 @@ export default function ListingPage() {
 
   return (
     <div className="min-h-screen bg-page font-poppins">
-      <PublicNav />
+      <PublicNav active="institutions" />
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="text-xs text-gray-500 mb-1">Home / Institutions</div>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Browse Institutions</h1>

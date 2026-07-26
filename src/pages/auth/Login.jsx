@@ -39,7 +39,7 @@ export default function LoginPage() {
     <div className="min-h-screen md:h-screen flex flex-col md:flex-row font-poppins md:overflow-hidden">
       {/* Left panel — hidden on mobile, shown on md+ */}
       <div className="hidden md:flex w-[45%] bg-navy flex-col items-center justify-center px-10 flex-shrink-0">
-        <img src="/logo.png" alt="JIPANGE" className="h-20 w-auto mb-5" />
+        <img src="/logo.png" alt="JIPANGE" className="h-20 w-auto mb-5 cursor-pointer" onClick={() => navigate('/home')} />
         <div className="space-y-3 w-full max-w-xs mb-8">
           {['No more physical queues','Real-time appointment updates','Book any institution in seconds'].map(f => (
             <div key={f} className="flex items-center gap-3 text-sm text-blue-100">
@@ -55,7 +55,7 @@ export default function LoginPage() {
 
       {/* Mobile-only compact header */}
       <div className="md:hidden bg-navy px-6 py-6 flex items-center justify-center">
-        <img src="/logo.png" alt="JIPANGE" className="h-12 w-auto" />
+        <img src="/logo.png" alt="JIPANGE" className="h-12 w-auto cursor-pointer" onClick={() => navigate('/home')} />
       </div>
 
       {/* Right panel */}

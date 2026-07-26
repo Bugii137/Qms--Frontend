@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import institutionApi from '../../utils/institutionApi'
+import PublicNav from '../../components/common/PublicNav'
 
 const CAT_COLORS = { Hospital:'bg-blue-100 text-blue-700', Bank:'bg-purple-100 text-purple-700', Government:'bg-yellow-100 text-yellow-700', University:'bg-green-100 text-green-700', Other:'bg-gray-100 text-gray-700' }
 
@@ -39,21 +40,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white font-poppins">
       {/* Navbar */}
-      <nav className="bg-white border-b border-gray-200 px-8 h-14 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center cursor-pointer" onClick={() => navigate('/home')}>
-          <img src="/logo.png" alt="JIPANGE" className="h-8 w-auto" />
-        </div>
-        <div className="flex items-center gap-6 text-sm text-gray-600">
-          <a className="hover:text-navy cursor-pointer">Home</a>
-          <a className="hover:text-navy cursor-pointer" onClick={() => navigate('/institutions')}>Institutions</a>
-          <a className="hover:text-navy cursor-pointer">About</a>
-          <a className="hover:text-navy cursor-pointer">Contact</a>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="btn-secondary text-xs px-4 py-1.5" onClick={() => navigate('/login')}>Login</button>
-          <button className="btn-primary text-xs px-4 py-1.5" onClick={() => navigate('/register')}>Register</button>
-        </div>
-      </nav>
+      <PublicNav active="home" />
 
       {/* Hero */}
       <section className="bg-navy py-16 text-center px-6">
@@ -81,12 +68,14 @@ export default function HomePage() {
           </select>
           <button className="btn-primary px-5 rounded-none text-sm" onClick={() => navigate(`/institutions?search=${encodeURIComponent(search)}&category=${cat === 'All Categories' ? '' : encodeURIComponent(cat)}`)}>Search</button>
         </div>
-        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-blue-200">
-          <span>Popular:</span>
-          {['City Hospital','National Bank','Huduma Centre'].map(t => (
-            <button key={t} className="bg-white/10 text-white px-2.5 py-0.5 rounded-full hover:bg-white/20 transition-colors" onClick={() => navigate(`/institutions?search=${encodeURIComponent(t)}`)}>{t}</button>
-          ))}
-        </div>
+        {featured.length > 0 && (
+          <div className="mt-4 flex items-center justify-center gap-2 text-xs text-blue-200 flex-wrap">
+            <span>Popular:</span>
+            {featured.map(inst => (
+              <button key={inst.id} className="bg-white/10 text-white px-2.5 py-0.5 rounded-full hover:bg-white/20 transition-colors" onClick={() => navigate(`/institutions?search=${encodeURIComponent(inst.name)}`)}>{inst.name}</button>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Featured Institutions */}
@@ -174,7 +163,8 @@ export default function HomePage() {
             <p className="text-gray-500 text-xs">Plan it. Show up. Get served.</p>
           </div>
           <div className="flex gap-5 text-xs text-gray-400">
-            {['About','Contact','Privacy','Terms'].map(l => <a key={l} className="hover:text-white cursor-pointer">{l}</a>)}
+            <a className="hover:text-white cursor-pointer" onClick={() => navigate('/about')}>About</a>
+            <a className="hover:text-white cursor-pointer" onClick={() => navigate('/contact')}>Contact</a>
           </div>
           <p className="text-gray-600 text-xs">© 2024 Jipange. All rights reserved.</p>
         </div>

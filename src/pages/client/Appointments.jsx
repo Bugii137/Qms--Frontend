@@ -89,7 +89,7 @@ export default function ClientAppointments() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
-                    {['Institution','Service','Date & Time','Booked On','Status','Actions'].map(h => (
+                    {['Institution','Service','Date & Time','Queue Token','Booked On','Status','Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500">{h}</th>
                     ))}
                   </tr>
@@ -100,6 +100,7 @@ export default function ClientAppointments() {
                       <td className="px-4 py-3 font-medium text-gray-800">{a.institutionName}</td>
                       <td className="px-4 py-3 text-gray-600">{a.serviceName}</td>
                       <td className="px-4 py-3 text-gray-600">{formatDateTime(a.appointmentDate, a.appointmentTime)}</td>
+                      <td className="px-4 py-3 text-gray-600">{a.queueNumber ? `#${a.queueNumber}` : '—'}</td>
                       <td className="px-4 py-3 text-gray-500">{formatBookedOn(a.createdAt)}</td>
                       <td className="px-4 py-3"><span className={BADGE[a.status]}>{a.status.charAt(0).toUpperCase()+a.status.slice(1)}</span></td>
                       <td className="px-4 py-3">
