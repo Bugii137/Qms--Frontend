@@ -117,7 +117,7 @@ export default function StaffProfile() {
             <ul className="text-xs text-gray-500 mt-4 space-y-1.5 list-disc list-inside">
               <li>View queue and appointments</li>
               {(accessLevel === "Manage Appointments" || accessLevel === "Full Access") && (
-                <li>Approve / Reject / Call Next</li>
+                <li>Approve / Reject / Mark Complete</li>
               )}
               {accessLevel === "Full Access" && (
                 <li>Edit own profile details</li>

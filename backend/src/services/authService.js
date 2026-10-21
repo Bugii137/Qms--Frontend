@@ -130,7 +130,20 @@ async function getById(userId) {
  * intentionally not editable here — changing email would need its own
  * re-verification flow, and role changes shouldn't be self-service.
  */
-async function updateProfile(userId, { fullName, phone }) {
+async function updateProfile(userId, { fullName, phone }, role) {
+  // Staff may only edit their own profile details with Full Access. The staff
+  // Profile page already disables the fields for other levels; enforce the
+  // same rule here so it can't be bypassed by calling the API directly.
+  if (role === 'staff') {
+    const { rows: staffRows } = await query(
+      `SELECT access_level FROM institution_staff WHERE user_id = $1 AND status = 'active'`,
+      [userId]
+    );
+    if (!staffRows[0] || staffRows[0].access_level !== 'full_access') {
+      throw new AppError('Your access level does not allow editing profile details', 403);
+    }
+  }
+
   const setClauses = [];
   const params = [userId];
 

@@ -100,7 +100,7 @@ async function updateProfile(req, res, next) {
     const { error, value } = updateProfileSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const user = await authService.updateProfile(req.user.id, value);
+    const user = await authService.updateProfile(req.user.id, value, req.user.role);
     res.json({ user });
   } catch (err) {
     next(err);
