@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import InstitutionLayout from "../../components/layout/InstitutionLayout";
 import institutionApi from "../../utils/institutionApi";
 import appointmentApi from "../../utils/appointmentApi";
+import { todayLocal } from '../../utils/date'
 
 const BADGE = { approved: "badge-approved", pending: "badge-pending", rejected: "badge-rejected", cancelled: "badge-cancelled", completed: "badge-completed" };
 
@@ -37,7 +38,7 @@ export default function InstitutionOverview() {
   const load = useCallback(() => {
     setLoading(true);
     setError("");
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocal();
 
     Promise.all([
       institutionApi.getMine(),

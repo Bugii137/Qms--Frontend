@@ -1,4 +1,9 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// 1082 = Postgres DATE. Return it as the plain 'YYYY-MM-DD' string instead of
+// a JS Date at local midnight, which JSON-serialises to the previous day in UTC
+// (e.g. 22 Oct on a UTC+3 machine becomes 2026-10-21T21:00:00.000Z).
+types.setTypeParser(1082, (val) => val);
 
 const pool = new Pool({
   host: process.env.DB_HOST || '127.0.0.1',

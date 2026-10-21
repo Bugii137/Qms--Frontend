@@ -5,6 +5,7 @@ import institutionApi from '../../utils/institutionApi'
 import serviceApi from '../../utils/serviceApi'
 import appointmentApi from '../../utils/appointmentApi'
 import PublicNav from '../../components/common/PublicNav'
+import { todayLocal } from '../../utils/date'
 
 function initialsOf(name) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase()
@@ -198,7 +199,7 @@ export default function DetailsPage() {
                   type="date"
                   className="input mb-3 text-sm"
                   value={selectedDate}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={todayLocal()}
                   onChange={e => setSelectedDate(e.target.value)}
                 />
 

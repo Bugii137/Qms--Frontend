@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import InstitutionLayout from "../../components/layout/InstitutionLayout";
 import EmptyState from "../../components/common/EmptyState";
 import appointmentApi from "../../utils/appointmentApi";
+import { parseYMD } from '../../utils/date'
 
 const TABS = [
   { label: "All", filter: "all" },
@@ -20,7 +21,7 @@ function initialsOf(name) {
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return parseYMD(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
 function formatTime(timeStr) {

@@ -6,6 +6,7 @@ import { canManage } from "../../utils/permissions";
 import { accessLevelToLabel } from "../../utils/accessLevel";
 import staffApi from "../../utils/staffApi";
 import appointmentApi from "../../utils/appointmentApi";
+import { todayLocal } from '../../utils/date'
 
 function greeting() {
   const hour = new Date().getHours();
@@ -32,7 +33,7 @@ export default function StaffDashboard() {
   const load = useCallback(() => {
     setLoading(true);
     setError("");
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocal();
 
     Promise.all([
       staffApi.getMine(),

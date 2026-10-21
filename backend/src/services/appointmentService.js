@@ -1,6 +1,7 @@
 const { query } = require('../db');
 const { AppError } = require('../middleware/errorHandler');
 const notificationService = require('./notificationService');
+const { todayLocal } = require('../utils/date');
 
 function toPublicAppointment(row) {
   return {
@@ -297,7 +298,7 @@ async function assignStaff(ownerId, appointmentId, staffUserId) {
  */
 async function getQueueForInstitutionOwner(ownerId) {
   const institutionId = await getOwnedInstitutionId(ownerId);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
 
   const appointments = await listForInstitution(institutionId, { status: 'approved', date: today });
 

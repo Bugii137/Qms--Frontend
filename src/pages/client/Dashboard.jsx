@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import ClientLayout from '../../components/layout/ClientLayout'
 import { useAuth } from '../../context/AuthContext'
 import appointmentApi from '../../utils/appointmentApi'
+import { todayLocal, ymd } from '../../utils/date'
 
 const STATUS_BADGE = { approved:'badge-approved', pending:'badge-pending', rejected:'badge-rejected', cancelled:'badge-cancelled', completed:'badge-completed' }
 
@@ -15,7 +16,7 @@ function greeting() {
 
 function formatDateTime(dateStr, timeStr) {
   if (!dateStr) return ''
-  const date = new Date(`${dateStr}T${timeStr || '00:00'}`)
+  const date = new Date(`${ymd(dateStr)}T${timeStr || '00:00'}`)
   const dateLabel = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
   const timeLabel = timeStr ? date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''
   return timeLabel ? `${dateLabel}, ${timeLabel}` : dateLabel
@@ -37,10 +38,10 @@ export default function ClientDashboard() {
         if (cancelled) return
         setAppointments(appointments)
 
-        const today = new Date().toISOString().slice(0, 10)
+        const today = todayLocal()
         const nextInQueue = appointments
-          .filter(a => a.status === 'approved' && a.queueNumber && a.appointmentDate >= today)
-          .sort((a, b) => (a.appointmentDate + a.appointmentTime).localeCompare(b.appointmentDate + b.appointmentTime))[0]
+          .filter(a => a.status === 'approved' && a.queueNumber && ymd(a.appointmentDate) >= today)
+          .sort((a, b) => (ymd(a.appointmentDate) + a.appointmentTime).localeCompare(ymd(b.appointmentDate) + b.appointmentTime))[0]
 
         if (nextInQueue) setQueueTarget(nextInQueue)
       })
@@ -49,10 +50,10 @@ export default function ClientDashboard() {
     return () => { cancelled = true }
   }, [])
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayLocal()
   const upcoming = appointments
-    .filter(a => (a.status === 'approved' || a.status === 'pending') && a.appointmentDate >= today)
-    .sort((a, b) => (a.appointmentDate + a.appointmentTime).localeCompare(b.appointmentDate + b.appointmentTime))
+    .filter(a => (a.status === 'approved' || a.status === 'pending') && ymd(a.appointmentDate) >= today)
+    .sort((a, b) => (ymd(a.appointmentDate) + a.appointmentTime).localeCompare(ymd(b.appointmentDate) + b.appointmentTime))
     .slice(0, 5)
 
   const kpis = [

@@ -16,7 +16,7 @@ async function getPlatformSummary() {
       FROM institutions
     `),
     query(`SELECT role, COUNT(*) AS count FROM users GROUP BY role`),
-    query(`SELECT COUNT(*) AS count FROM appointments WHERE appointment_date = CURRENT_DATE`),
+    query(`SELECT COUNT(*) AS count FROM appointments WHERE appointment_date = (NOW() AT TIME ZONE 'Africa/Nairobi')::date`),
     query(`
       SELECT i.id, i.name, i.category, i.status, i.created_at, u.full_name AS owner_name
       FROM institutions i

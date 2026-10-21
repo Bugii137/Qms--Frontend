@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import InstitutionLayout from "../../components/layout/InstitutionLayout";
 import institutionApi from "../../utils/institutionApi";
 import appointmentApi from "../../utils/appointmentApi";
+import { toLocalYMD, ymd, parseYMD } from '../../utils/date'
 
 const PERIODS = { "This Week": 7, "This Month": 30, "Last 3 Months": 90 };
 const STATUS_COLORS = { completed: "#00A86B", pending: "#FBBF24", approved: "#3B82F6", rejected: "#EF4444", cancelled: "#D1D5DB" };
 
 function withinPeriod(dateStr, days) {
-  const date = new Date(dateStr);
+  const date = parseYMD(dateStr);
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
   return date >= cutoff;
@@ -64,8 +65,8 @@ export default function Reports() {
   const dailyBuckets = [...Array(7)].map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
-    const key = d.toISOString().slice(0, 10);
-    const count = appointments.filter(a => a.appointmentDate === key).length;
+    const key = toLocalYMD(d);
+    const count = appointments.filter(a => ymd(a.appointmentDate) === key).length;
     return { label: dayLabel(d), count };
   });
   const maxBar = Math.max(1, ...dailyBuckets.map(d => d.count));
