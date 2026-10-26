@@ -12,11 +12,29 @@ router.get(
   authorize('admin'),
   institutionController.listForSystemAdmin
 );
+router.post(
+  '/admin',
+  authenticate,
+  authorize('admin'),
+  institutionController.createForSystemAdmin
+);
+router.put(
+  '/admin/:id',
+  authenticate,
+  authorize('admin'),
+  institutionController.updateForSystemAdmin
+);
 router.patch(
   '/admin/:id/status',
   authenticate,
   authorize('admin'),
   institutionController.setStatus
+);
+router.delete(
+  '/admin/:id',
+  authenticate,
+  authorize('admin'),
+  institutionController.deleteForSystemAdmin
 );
 
 // ── Institution admin self-service ──────────────────────────────────────────

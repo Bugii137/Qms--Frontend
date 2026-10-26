@@ -7,5 +7,6 @@ const { authenticate } = require('../middleware/authenticate');
 router.get('/', authenticate, notificationController.listMine);
 router.patch('/read-all', authenticate, notificationController.markAllRead);
 router.patch('/:id/read', authenticate, notificationController.markRead);
+router.delete('/:id', authenticate, notificationController.remove);
 
 module.exports = router;

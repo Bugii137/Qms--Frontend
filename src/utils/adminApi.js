@@ -9,7 +9,10 @@ const adminApi = {
     const qs = params.toString();
     return api.get(`/admin/users${qs ? `?${qs}` : ''}`);
   },
+  createUser: (payload) => api.post('/admin/users', payload),
+  updateUser: (id, payload) => api.put(`/admin/users/${id}`, payload),
   setUserActive: (id, isActive) => api.patch(`/admin/users/${id}/status`, { isActive }),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
 };
 
 export default adminApi;

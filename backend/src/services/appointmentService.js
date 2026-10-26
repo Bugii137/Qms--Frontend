@@ -261,6 +261,67 @@ async function cancelByClient(clientId, appointmentId) {
   return getByIdRaw(appointmentId);
 }
 
+async function updateAppointment(user, appointmentId, updates) {
+  if (user.role === 'client') {
+    const { rows } = await query(
+      'SELECT * FROM appointments WHERE id = $1 AND client_id = $2',
+      [appointmentId, user.id]
+    );
+    const appointment = rows[0];
+    if (!appointment) throw new AppError('Appointment not found', 404);
+    if (appointment.status !== 'pending') {
+      throw new AppError('Only pending appointments can be edited by the client', 400);
+    }
+  } else {
+    await assertManagesAppointment(user, appointmentId);
+  }
+
+  if (updates.appointmentDate) {
+    const parsed = new Date(`${updates.appointmentDate}T00:00:00.000Z`);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== updates.appointmentDate) {
+      throw new AppError('A valid appointment date is required', 400);
+    }
+    if (updates.appointmentDate < todayLocal()) {
+      throw new AppError('Appointments must be scheduled for today or a future date', 400);
+    }
+  }
+
+  const columns = {
+    appointmentDate: 'appointment_date',
+    appointmentTime: 'appointment_time',
+    notes: 'notes',
+  };
+  const setClauses = [];
+  const params = [appointmentId];
+  for (const [field, column] of Object.entries(columns)) {
+    if (updates[field] !== undefined) {
+      params.push(updates[field] || null);
+      setClauses.push(`${column} = $${params.length}`);
+    }
+  }
+  if (!setClauses.length) throw new AppError('No valid fields provided to update', 400);
+
+  const { rows } = await query(
+    `UPDATE appointments SET ${setClauses.join(', ')}, updated_at = NOW()
+     WHERE id = $1 RETURNING client_id`,
+    params
+  );
+  const updated = await getByIdRaw(appointmentId);
+  await notificationService.create(rows[0].client_id, {
+    type: 'appointment',
+    title: 'Appointment updated',
+    message: `Your appointment for ${updated.serviceName} at ${updated.institutionName} is now scheduled for ${updated.appointmentDate} at ${updated.appointmentTime}.`,
+  });
+  return updated;
+}
+
+async function deleteAppointment(user, appointmentId) {
+  if (user.role === 'client') {
+    return cancelByClient(user.id, appointmentId);
+  }
+  return setStatus(user, appointmentId, 'cancelled');
+}
+
 /**
  * Assign (or reassign) a staff member to an appointment. Institution
  * admin only — used from the institution Appointments page.
@@ -370,6 +431,8 @@ module.exports = {
   listForStaff,
   setStatus,
   cancelByClient,
+  updateAppointment,
+  deleteAppointment,
   assignStaff,
   getQueueForInstitutionOwner,
   callNext,

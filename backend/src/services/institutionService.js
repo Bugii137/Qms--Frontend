@@ -159,7 +159,55 @@ async function listForSystemAdmin({ status } = {}) {
     params
   );
 
-  return rows.map(toPublicInstitution);
+  return rows.map((row) => ({ ...toPublicInstitution(row), ownerId: row.owner_id }));
+}
+
+async function createForSystemAdmin({ ownerId, name, category, description, address, phone, email, logoUrl }) {
+  const { rows: ownerRows } = await query(
+    `SELECT id FROM users WHERE id = $1 AND role = 'institution_admin' AND is_active = TRUE`,
+    [ownerId]
+  );
+  if (!ownerRows[0]) throw new AppError('An active institution admin account is required', 400);
+
+  const { rows: existingRows } = await query('SELECT id FROM institutions WHERE owner_id = $1', [ownerId]);
+  if (existingRows[0]) throw new AppError('This account already owns an institution', 409);
+
+  const { rows } = await query(
+    `INSERT INTO institutions (owner_id, name, category, description, address, phone, email, logo_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
+    [ownerId, name, category || null, description || null, address || null, phone || null, email || null, logoUrl || null]
+  );
+  return toPublicInstitution(rows[0]);
+}
+
+async function updateForSystemAdmin(institutionId, updates) {
+  const columns = {
+    name: 'name',
+    category: 'category',
+    description: 'description',
+    address: 'address',
+    phone: 'phone',
+    email: 'email',
+    logoUrl: 'logo_url',
+  };
+  const setClauses = [];
+  const params = [institutionId];
+  for (const [field, column] of Object.entries(columns)) {
+    if (updates[field] !== undefined) {
+      params.push(updates[field] || null);
+      setClauses.push(`${column} = $${params.length}`);
+    }
+  }
+  if (!setClauses.length) throw new AppError('No valid fields provided to update', 400);
+
+  const { rows } = await query(
+    `UPDATE institutions SET ${setClauses.join(', ')}, updated_at = NOW()
+     WHERE id = $1 RETURNING *`,
+    params
+  );
+  if (!rows[0]) throw new AppError('Institution not found', 404);
+  return toPublicInstitution(rows[0]);
 }
 
 async function setStatus(institutionId, status) {
@@ -184,5 +232,7 @@ module.exports = {
   create,
   updateByOwner,
   listForSystemAdmin,
+  createForSystemAdmin,
+  updateForSystemAdmin,
   setStatus,
 };

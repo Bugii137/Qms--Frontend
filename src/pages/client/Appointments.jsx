@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import ClientLayout from '../../components/layout/ClientLayout'
 import EmptyState from '../../components/common/EmptyState'
 import appointmentApi from '../../utils/appointmentApi'
+import { todayLocal } from '../../utils/date'
 
 const STATUS_FILTERS = ['All Status', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Completed']
 const BADGE = { approved:'badge-approved', pending:'badge-pending', rejected:'badge-rejected', cancelled:'badge-cancelled', completed:'badge-completed' }
@@ -26,6 +27,9 @@ export default function ClientAppointments() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [cancellingId, setCancellingId] = useState(null)
+  const [editingAppointment, setEditingAppointment] = useState(null)
+  const [editForm, setEditForm] = useState({ appointmentDate: '', appointmentTime: '', notes: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -43,12 +47,36 @@ export default function ClientAppointments() {
   const handleCancel = async (id) => {
     setCancellingId(id)
     try {
-      await appointmentApi.cancelMine(id)
+      await appointmentApi.remove(id)
       load()
     } catch (err) {
       setError(err.message || 'Could not cancel this appointment.')
     } finally {
       setCancellingId(null)
+    }
+  }
+
+  const openEdit = (appointment) => {
+    setEditingAppointment(appointment)
+    setEditForm({
+      appointmentDate: String(appointment.appointmentDate).slice(0, 10),
+      appointmentTime: String(appointment.appointmentTime).slice(0, 5),
+      notes: appointment.notes || '',
+    })
+  }
+
+  const saveEdit = async (event) => {
+    event.preventDefault()
+    setSavingEdit(true)
+    setError('')
+    try {
+      await appointmentApi.update(editingAppointment.id, editForm)
+      setEditingAppointment(null)
+      load()
+    } catch (err) {
+      setError(err.message || 'Could not update this appointment.')
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -105,15 +133,17 @@ export default function ClientAppointments() {
                       <td className="px-4 py-3"><span className={BADGE[a.status]}>{a.status.charAt(0).toUpperCase()+a.status.slice(1)}</span></td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          {(a.status === 'approved' || a.status === 'pending') &&
+                          {a.status === 'pending' && (
+                            <button className="text-blue-600 hover:text-blue-800 text-xs disabled:opacity-40" title="Edit appointment" onClick={() => openEdit(a)}>Edit</button>
+                          )}
+                          {(a.status === 'approved' || a.status === 'pending') && (
                             <button
-                              className="text-red-300 hover:text-red-500 text-base disabled:opacity-40"
-                              title="Cancel"
+                              className="text-red-500 hover:text-red-700 text-xs disabled:opacity-40"
+                              title="Cancel appointment"
                               disabled={cancellingId === a.id}
                               onClick={() => handleCancel(a.id)}
-                            >
-                              ✕
-                            </button>}
+                            >{cancellingId === a.id ? 'Cancelling…' : 'Cancel'}</button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -124,6 +154,31 @@ export default function ClientAppointments() {
           )}
         </div>
       </div>
+      {editingAppointment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <form onSubmit={saveEdit} className="card w-full max-w-md p-5">
+            <h2 className="text-lg font-semibold text-navy mb-4">Edit appointment</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Date</label>
+                <input className="input" type="date" min={todayLocal()} required value={editForm.appointmentDate} onChange={e => setEditForm(f => ({ ...f, appointmentDate: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Time</label>
+                <input className="input" type="time" required value={editForm.appointmentTime} onChange={e => setEditForm(f => ({ ...f, appointmentTime: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Notes</label>
+                <textarea className="input" rows={3} maxLength={500} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button type="button" className="btn-secondary text-sm px-4 py-2" onClick={() => setEditingAppointment(null)}>Cancel</button>
+              <button type="submit" className="btn-primary text-sm px-4 py-2" disabled={savingEdit}>{savingEdit ? 'Saving…' : 'Save changes'}</button>
+            </div>
+          </form>
+        </div>
+      )}
     </ClientLayout>
   )
 }

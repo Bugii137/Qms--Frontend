@@ -121,8 +121,15 @@ async function assertOwnedStaff(ownerId, staffId) {
   return rows[0];
 }
 
-async function update(ownerId, staffId, { jobTitle, accessLevel }) {
-  await assertOwnedStaff(ownerId, staffId);
+async function update(ownerId, staffId, { fullName, email, phone, jobTitle, accessLevel }) {
+  const existing = await assertOwnedStaff(ownerId, staffId);
+  if (email !== undefined) {
+    const { rows: duplicateRows } = await query(
+      'SELECT id FROM users WHERE email = $1 AND id <> $2',
+      [email, existing.user_id]
+    );
+    if (duplicateRows[0]) throw new AppError('An account with this email already exists', 409);
+  }
 
   const setClauses = [];
   const params = [staffId];
@@ -135,18 +142,55 @@ async function update(ownerId, staffId, { jobTitle, accessLevel }) {
     params.push(accessLevel);
     setClauses.push(`access_level = $${params.length}`);
   }
-  if (setClauses.length === 0) {
+  const userSetClauses = [];
+  const userParams = [existing.user_id];
+  for (const [column, value] of [
+    ['full_name', fullName],
+    ['email', email],
+    ['phone', phone],
+  ]) {
+    if (value !== undefined) {
+      userParams.push(value || null);
+      userSetClauses.push(`${column} = $${userParams.length}`);
+    }
+  }
+
+  if (setClauses.length === 0 && userSetClauses.length === 0) {
     throw new AppError('No valid fields provided to update', 400);
   }
 
-  const { rows } = await query(
-    `UPDATE institution_staff SET ${setClauses.join(', ')}, updated_at = NOW()
-     WHERE id = $1
-     RETURNING *`,
-    params
-  );
+  const client = await getClient();
+  let rows;
+  try {
+    await client.query('BEGIN');
+    if (userSetClauses.length) {
+      await client.query(
+        `UPDATE users SET ${userSetClauses.join(', ')}, updated_at = NOW() WHERE id = $1`,
+        userParams
+      );
+    }
+    if (setClauses.length) {
+      const result = await client.query(
+        `UPDATE institution_staff SET ${setClauses.join(', ')}, updated_at = NOW()
+         WHERE id = $1 RETURNING *`,
+        params
+      );
+      rows = result.rows;
+    } else {
+      const result = await client.query('SELECT * FROM institution_staff WHERE id = $1', [staffId]);
+      rows = result.rows;
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 
-  return toPublicStaff(rows[0]);
+  const { rows: userRows } = await query('SELECT full_name, email, phone FROM users WHERE id = $1', [existing.user_id]);
+
+  return toPublicStaff({ ...rows[0], ...userRows[0] });
 }
 
 async function setStatus(ownerId, staffId, status) {
@@ -170,7 +214,10 @@ async function setStatus(ownerId, staffId, status) {
  */
 async function remove(ownerId, staffId) {
   await assertOwnedStaff(ownerId, staffId);
-  await query('DELETE FROM institution_staff WHERE id = $1', [staffId]);
+  await query(
+    `UPDATE institution_staff SET status = 'inactive', updated_at = NOW() WHERE id = $1`,
+    [staffId]
+  );
 }
 
 /**

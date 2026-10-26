@@ -25,6 +25,10 @@ const statusSchema = Joi.object({
   status: Joi.string().valid('pending', 'active', 'suspended').required(),
 });
 
+const adminCreateSchema = createSchema.keys({
+  ownerId: Joi.number().integer().positive().required(),
+});
+
 // ── Public ───────────────────────────────────────────────────────────────────
 async function listPublic(req, res, next) {
   try {
@@ -102,6 +106,37 @@ async function setStatus(req, res, next) {
   }
 }
 
+async function createForSystemAdmin(req, res, next) {
+  try {
+    const { error, value } = adminCreateSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+    const institution = await institutionService.createForSystemAdmin(value);
+    res.status(201).json({ institution });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateForSystemAdmin(req, res, next) {
+  try {
+    const { error, value } = updateSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+    const institution = await institutionService.updateForSystemAdmin(req.params.id, value);
+    res.json({ institution });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteForSystemAdmin(req, res, next) {
+  try {
+    const institution = await institutionService.setStatus(req.params.id, 'suspended');
+    res.json({ institution });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listPublic,
   getPublicById,
@@ -109,5 +144,8 @@ module.exports = {
   create,
   updateMine,
   listForSystemAdmin,
+  createForSystemAdmin,
+  updateForSystemAdmin,
+  deleteForSystemAdmin,
   setStatus,
 };

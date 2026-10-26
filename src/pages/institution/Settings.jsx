@@ -125,7 +125,8 @@ function ServicesTab() {
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [newSvc, setNewSvc] = useState({ name: '', durationMinutes: '', description: '' })
+  const [newSvc, setNewSvc] = useState({ name: '', durationMinutes: '', description: '', price: '' })
+  const [editingSvc, setEditingSvc] = useState(null)
   const [adding, setAdding] = useState(false)
 
   const load = useCallback(() => {
@@ -151,7 +152,7 @@ function ServicesTab() {
   const deleteSvc = async (id) => {
     try {
       await serviceApi.remove(id)
-      setServices(s => s.filter(svc => svc.id !== id))
+      setServices(s => s.map(svc => svc.id === id ? { ...svc, isActive: false } : svc))
     } catch (err) {
       setError(err.message || 'Could not delete this service.')
     }
@@ -162,12 +163,19 @@ function ServicesTab() {
     setAdding(true)
     setError('')
     try {
-      await serviceApi.create({
+      const payload = {
         name: newSvc.name,
         durationMinutes: Number(newSvc.durationMinutes),
         description: newSvc.description,
-      })
-      setNewSvc({ name: '', durationMinutes: '', description: '' })
+        price: Number(newSvc.price || 0),
+      }
+      if (editingSvc) {
+        await serviceApi.update(editingSvc.id, payload)
+      } else {
+        await serviceApi.create(payload)
+      }
+      setNewSvc({ name: '', durationMinutes: '', description: '', price: '' })
+      setEditingSvc(null)
       load()
     } catch (err) {
       setError(err.message || 'Could not add this service.')
@@ -210,7 +218,16 @@ function ServicesTab() {
                   <td className="px-4 py-3 text-gray-500 text-xs">{svc.description}</td>
                   <td className="px-4 py-3"><Toggle on={svc.isActive} onChange={() => toggleStatus(svc)} /></td>
                   <td className="px-4 py-3">
-                    <button onClick={() => deleteSvc(svc.id)} className="text-red-400 hover:text-red-600 text-base" title="Delete">🗑</button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingSvc(svc)
+                          setNewSvc({ name: svc.name, durationMinutes: String(svc.durationMinutes), description: svc.description || '', price: String(svc.price || 0) })
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >Edit</button>
+                      {svc.isActive && <button onClick={() => deleteSvc(svc.id)} className="text-xs text-red-500 hover:text-red-700" title="Archive service">Archive</button>}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -222,7 +239,7 @@ function ServicesTab() {
 
       {/* Add service form */}
       <div className="card p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Add New Service</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">{editingSvc ? 'Edit Service' : 'Add New Service'}</h3>
         <div className="flex gap-3 items-end flex-wrap">
           <div className="flex-1 min-w-[160px]">
             <label className="block text-xs text-gray-500 mb-1">Service Name</label>
@@ -232,13 +249,18 @@ function ServicesTab() {
             <label className="block text-xs text-gray-500 mb-1">Duration (min)</label>
             <input className="input text-sm" type="number" placeholder="30" value={newSvc.durationMinutes} onChange={e => setNewSvc(s => ({ ...s, durationMinutes: e.target.value }))} />
           </div>
+          <div className="w-32">
+            <label className="block text-xs text-gray-500 mb-1">Price</label>
+            <input className="input text-sm" type="number" min="0" step="0.01" placeholder="0.00" value={newSvc.price} onChange={e => setNewSvc(s => ({ ...s, price: e.target.value }))} />
+          </div>
           <div className="flex-1 min-w-[160px]">
             <label className="block text-xs text-gray-500 mb-1">Description</label>
             <input className="input text-sm" placeholder="Short description" value={newSvc.description} onChange={e => setNewSvc(s => ({ ...s, description: e.target.value }))} />
           </div>
           <button disabled={adding} onClick={addSvc} className="btn-primary text-xs px-4 py-2 whitespace-nowrap disabled:opacity-50">
-            {adding ? 'Adding…' : '+ Add'}
+            {adding ? 'Saving…' : editingSvc ? 'Save Changes' : '+ Add'}
           </button>
+          {editingSvc && <button onClick={() => { setEditingSvc(null); setNewSvc({ name: '', durationMinutes: '', description: '', price: '' }) }} className="btn-secondary text-xs px-4 py-2">Cancel edit</button>}
         </div>
       </div>
     </div>

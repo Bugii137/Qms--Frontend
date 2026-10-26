@@ -5,6 +5,7 @@ import { canManage } from "../../utils/permissions";
 import { accessLevelToLabel } from "../../utils/accessLevel";
 import staffApi from "../../utils/staffApi";
 import appointmentApi from "../../utils/appointmentApi";
+import { todayLocal } from "../../utils/date";
 
 const BADGE = { approved: "badge-approved", pending: "badge-pending", rejected: "badge-rejected", cancelled: "badge-cancelled", completed: "badge-completed" };
 
@@ -19,6 +20,9 @@ export default function StaffAppointments() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actingId, setActingId] = useState(null);
+  const [editingAppointment, setEditingAppointment] = useState(null);
+  const [editForm, setEditForm] = useState({ appointmentDate: "", appointmentTime: "", notes: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -48,6 +52,43 @@ export default function StaffAppointments() {
       load();
     } catch (err) {
       setError(err.message || "Could not update this appointment.");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const openEdit = (appointment) => {
+    setEditingAppointment(appointment);
+    setEditForm({
+      appointmentDate: String(appointment.appointmentDate).slice(0, 10),
+      appointmentTime: String(appointment.appointmentTime).slice(0, 5),
+      notes: appointment.notes || "",
+    });
+  };
+
+  const saveEdit = async (event) => {
+    event.preventDefault();
+    setSavingEdit(true);
+    setError("");
+    try {
+      await appointmentApi.update(editingAppointment.id, editForm);
+      setEditingAppointment(null);
+      load();
+    } catch (err) {
+      setError(err.message || "Could not update this appointment.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const cancelAppointment = async (appointment) => {
+    if (!window.confirm(`Cancel the appointment for ${appointment.clientName}? The booking history will be preserved.`)) return;
+    setActingId(appointment.id);
+    try {
+      await appointmentApi.remove(appointment.id);
+      load();
+    } catch (err) {
+      setError(err.message || "Could not cancel this appointment.");
     } finally {
       setActingId(null);
     }
@@ -109,6 +150,12 @@ export default function StaffAppointments() {
                         {a.status === "approved" && (
                           <button disabled={actingId === a.id} onClick={() => updateStatus(a.id, "completed")} className="text-xs text-green-brand hover:underline font-medium disabled:opacity-40">Mark Complete</button>
                         )}
+                        {(a.status === "pending" || a.status === "approved") && (
+                          <>
+                            <button disabled={actingId === a.id} onClick={() => openEdit(a)} className="text-xs text-blue-600 hover:underline disabled:opacity-40">Edit</button>
+                            <button disabled={actingId === a.id} onClick={() => cancelAppointment(a)} className="text-xs text-red-600 hover:underline disabled:opacity-40">Cancel</button>
+                          </>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -125,6 +172,22 @@ export default function StaffAppointments() {
           </p>
         )}
       </div>
+      {editingAppointment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <form onSubmit={saveEdit} className="card w-full max-w-md p-5">
+            <h2 className="text-lg font-semibold text-navy mb-4">Edit appointment</h2>
+            <div className="space-y-3">
+              <label className="block text-xs text-gray-500">Date<input className="input mt-1" type="date" min={todayLocal()} required value={editForm.appointmentDate} onChange={e => setEditForm(f => ({ ...f, appointmentDate: e.target.value }))} /></label>
+              <label className="block text-xs text-gray-500">Time<input className="input mt-1" type="time" required value={editForm.appointmentTime} onChange={e => setEditForm(f => ({ ...f, appointmentTime: e.target.value }))} /></label>
+              <label className="block text-xs text-gray-500">Notes<textarea className="input mt-1" rows={3} maxLength={500} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></label>
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button type="button" className="btn-secondary text-xs px-4 py-2" onClick={() => setEditingAppointment(null)}>Cancel</button>
+              <button type="submit" className="btn-primary text-xs px-4 py-2" disabled={savingEdit}>{savingEdit ? "Saving…" : "Save changes"}</button>
+            </div>
+          </form>
+        </div>
+      )}
     </StaffLayout>
   );
 }

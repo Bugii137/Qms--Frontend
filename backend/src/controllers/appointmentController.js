@@ -20,6 +20,14 @@ const assignSchema = Joi.object({
   staffUserId: Joi.number().integer().allow(null),
 });
 
+const updateSchema = Joi.object({
+  appointmentDate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
+  appointmentTime: Joi.string()
+    .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .messages({ 'string.pattern.base': 'appointmentTime must be in HH:mm 24-hour format' }),
+  notes: Joi.string().max(500).allow('', null),
+}).min(1);
+
 // ── Client ───────────────────────────────────────────────────────────────────
 async function book(req, res, next) {
   try {
@@ -46,6 +54,26 @@ async function listMine(req, res, next) {
 async function cancelMine(req, res, next) {
   try {
     const appointment = await appointmentService.cancelByClient(req.user.id, req.params.id);
+    res.json({ appointment });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function update(req, res, next) {
+  try {
+    const { error, value } = updateSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+    const appointment = await appointmentService.updateAppointment(req.user, req.params.id, value);
+    res.json({ appointment });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function remove(req, res, next) {
+  try {
+    const appointment = await appointmentService.deleteAppointment(req.user, req.params.id);
     res.json({ appointment });
   } catch (err) {
     next(err);
@@ -130,6 +158,8 @@ module.exports = {
   book,
   listMine,
   cancelMine,
+  update,
+  remove,
   listForInstitution,
   assignStaff,
   getQueue,

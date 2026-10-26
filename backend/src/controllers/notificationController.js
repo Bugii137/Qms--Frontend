@@ -28,4 +28,13 @@ async function markAllRead(req, res, next) {
   }
 }
 
-module.exports = { listMine, markRead, markAllRead };
+async function remove(req, res, next) {
+  try {
+    await notificationService.remove(req.user.id, req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { listMine, markRead, markAllRead, remove };

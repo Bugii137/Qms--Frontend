@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import InstitutionLayout from "../../components/layout/InstitutionLayout";
 import staffApi from "../../utils/staffApi";
-import { accessLevelToValue } from "../../utils/accessLevel";
+import { accessLevelToLabel, accessLevelToValue } from "../../utils/accessLevel";
 
 const STATUS_BADGE = { active: "badge-active", inactive: "badge-inactive", invited: "badge-pending" };
 const STATUS_LABEL = { active: "Active", inactive: "Inactive", invited: "Invited (legacy)" };
@@ -32,6 +32,10 @@ export default function StaffManagement() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [actingId, setActingId] = useState(null);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [editForm, setEditForm] = useState({ fullName: "", email: "", phone: "", jobTitle: "", access: "" });
+  const [editError, setEditError] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -84,6 +88,51 @@ export default function StaffManagement() {
       load();
     } catch (err) {
       setError(err.message || "Could not remove this staff member.");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const openEdit = (member) => {
+    setEditingStaff(member);
+    setEditForm({
+      fullName: member.fullName,
+      email: member.email,
+      phone: member.phone || "",
+      jobTitle: member.jobTitle,
+      access: accessLevelToLabel(member.accessLevel),
+    });
+    setEditError("");
+  };
+
+  const handleEdit = async (event) => {
+    event.preventDefault();
+    setSavingEdit(true);
+    setEditError("");
+    try {
+      await staffApi.update(editingStaff.id, {
+        fullName: editForm.fullName,
+        email: editForm.email,
+        phone: editForm.phone,
+        jobTitle: editForm.jobTitle,
+        accessLevel: accessLevelToValue(editForm.access),
+      });
+      setEditingStaff(null);
+      load();
+    } catch (err) {
+      setEditError(err.message || "Could not update this staff member.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const reactivateStaff = async (id) => {
+    setActingId(id);
+    try {
+      await staffApi.setStatus(id, "active");
+      load();
+    } catch (err) {
+      setError(err.message || "Could not reactivate this staff member.");
     } finally {
       setActingId(null);
     }
@@ -143,13 +192,16 @@ export default function StaffManagement() {
                   <span className={STATUS_BADGE[s.status]}>{STATUS_LABEL[s.status]}</span>
                 </div>
                 <div className="grid grid-cols-1 gap-2 border-t border-gray-100 pt-3">
-                  <button
-                    disabled={actingId === s.id}
-                    className="text-xs text-red-500 hover:text-red-700 py-1.5 border border-red-100 rounded-lg hover:bg-red-50 disabled:opacity-40"
-                    onClick={() => handleRemove(s.id)}
-                  >
-                    Remove
-                  </button>
+                  <button className="text-xs text-blue-600 hover:text-blue-800 py-1" onClick={() => openEdit(s)}>Edit details</button>
+                  {s.status !== "inactive" ? (
+                    <button
+                      disabled={actingId === s.id}
+                      className="text-xs text-red-500 hover:text-red-700 py-1.5 border border-red-100 rounded-lg hover:bg-red-50 disabled:opacity-40"
+                      onClick={() => handleRemove(s.id)}
+                    >Deactivate</button>
+                  ) : (
+                    <button disabled={actingId === s.id} onClick={() => reactivateStaff(s.id)} className="text-xs text-green-600 hover:text-green-800 py-1.5 border border-green-100 rounded-lg hover:bg-green-50 disabled:opacity-40">Reactivate</button>
+                  )}
                 </div>
               </div>
             ))}
@@ -166,6 +218,25 @@ export default function StaffManagement() {
 
             {formError && (
               <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-3">{formError}</div>
+            )}
+            {editingStaff && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                <form onSubmit={handleEdit} className="card w-full max-w-md p-5">
+                  <h2 className="text-lg font-semibold text-navy mb-4">Edit staff details</h2>
+                  {editError && <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-3">{editError}</div>}
+                  <div className="space-y-3">
+                    <label className="block text-xs text-gray-500">Full name<input className="input text-sm mt-1" required minLength={2} value={editForm.fullName} onChange={e => setEditForm(f => ({ ...f, fullName: e.target.value }))} /></label>
+                    <label className="block text-xs text-gray-500">Email<input className="input text-sm mt-1" required type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} /></label>
+                    <label className="block text-xs text-gray-500">Phone<input className="input text-sm mt-1" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></label>
+                    <label className="block text-xs text-gray-500">Job title<select className="input text-sm mt-1" value={editForm.jobTitle} onChange={e => setEditForm(f => ({ ...f, jobTitle: e.target.value }))}>{["Receptionist","Doctor","Nurse","Lab Technician","Administrator"].map(title => <option key={title}>{title}</option>)}</select></label>
+                    <label className="block text-xs text-gray-500">Access level<select className="input text-sm mt-1" value={editForm.access} onChange={e => setEditForm(f => ({ ...f, access: e.target.value }))}>{["View Only","Manage Appointments","Full Access"].map(level => <option key={level}>{level}</option>)}</select></label>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-5">
+                    <button type="button" className="btn-secondary text-xs px-4 py-2" onClick={() => setEditingStaff(null)}>Cancel</button>
+                    <button type="submit" className="btn-primary text-xs px-4 py-2" disabled={savingEdit}>{savingEdit ? "Saving…" : "Save changes"}</button>
+                  </div>
+                </form>
+              </div>
             )}
 
             <div className="space-y-3">

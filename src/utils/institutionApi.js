@@ -15,7 +15,10 @@ const institutionApi = {
 
   // System admin
   listForSystemAdmin: (status) => api.get(`/institutions/admin/all${status ? `?status=${status}` : ''}`),
+  createForSystemAdmin: (payload) => api.post('/institutions/admin', payload),
+  updateForSystemAdmin: (id, payload) => api.put(`/institutions/admin/${id}`, payload),
   setStatus: (id, status) => api.patch(`/institutions/admin/${id}/status`, { status }),
+  deleteForSystemAdmin: (id) => api.delete(`/institutions/admin/${id}`),
 };
 
 export default institutionApi;

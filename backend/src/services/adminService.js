@@ -1,5 +1,8 @@
+const bcrypt = require('bcryptjs');
 const { query } = require('../db');
 const { AppError } = require('../middleware/errorHandler');
+
+const SALT_ROUNDS = 10;
 
 function toPublicUser(row) {
   return {
@@ -51,6 +54,50 @@ async function listUsers({ search, role, isActive } = {}) {
   return rows.map(toPublicUser);
 }
 
+async function createUser({ fullName, email, phone, password }) {
+  const { rows: existingRows } = await query('SELECT id FROM users WHERE email = $1', [email]);
+  if (existingRows[0]) throw new AppError('An account with this email already exists', 409);
+
+  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+  const { rows } = await query(
+    `INSERT INTO users (full_name, email, phone, password_hash, role)
+     VALUES ($1, $2, $3, $4, 'client')
+     RETURNING *`,
+    [fullName, email, phone || null, passwordHash]
+  );
+  return toPublicUser(rows[0]);
+}
+
+async function updateUser(userId, updates) {
+  const { rows: existingRows } = await query('SELECT id FROM users WHERE id = $1', [userId]);
+  if (!existingRows[0]) throw new AppError('User not found', 404);
+
+  if (updates.email) {
+    const { rows: duplicateRows } = await query(
+      'SELECT id FROM users WHERE email = $1 AND id <> $2',
+      [updates.email, userId]
+    );
+    if (duplicateRows[0]) throw new AppError('An account with this email already exists', 409);
+  }
+
+  const columns = { fullName: 'full_name', email: 'email', phone: 'phone' };
+  const setClauses = [];
+  const params = [userId];
+  for (const [field, column] of Object.entries(columns)) {
+    if (updates[field] !== undefined) {
+      params.push(updates[field] || null);
+      setClauses.push(`${column} = $${params.length}`);
+    }
+  }
+  if (!setClauses.length) throw new AppError('No valid fields provided to update', 400);
+
+  const { rows } = await query(
+    `UPDATE users SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $1 RETURNING *`,
+    params
+  );
+  return toPublicUser(rows[0]);
+}
+
 /**
  * Activate/suspend any user on the platform. A system admin can never
  * suspend their own account through this endpoint (would lock them out
@@ -70,4 +117,4 @@ async function setUserActive(callerId, userId, isActive) {
   return toPublicUser(rows[0]);
 }
 
-module.exports = { listUsers, setUserActive };
+module.exports = { listUsers, createUser, updateUser, setUserActive };

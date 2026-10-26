@@ -36,6 +36,7 @@ export default function ClientNotifications() {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -66,6 +67,19 @@ export default function ClientNotifications() {
       await notificationApi.markRead(id)
     } catch (err) {
       setError(err.message || 'Could not mark this notification as read.')
+    }
+  }
+
+  const deleteNotification = async (event, id) => {
+    event.stopPropagation()
+    setDeletingId(id)
+    try {
+      await notificationApi.remove(id)
+      setNotifications(ns => ns.filter(n => n.id !== id))
+    } catch (err) {
+      setError(err.message || 'Could not delete this notification.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -144,6 +158,7 @@ export default function ClientNotifications() {
                         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                           <span className="text-xs text-gray-400">{relativeTime(n.createdAt)}</span>
                           {!n.isRead && <div className="w-2 h-2 bg-green-brand rounded-full" />}
+                          <button type="button" disabled={deletingId === n.id} onClick={event => deleteNotification(event, n.id)} className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40">Delete</button>
                         </div>
                       </div>
                     )

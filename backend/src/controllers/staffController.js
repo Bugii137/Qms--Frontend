@@ -14,6 +14,9 @@ const createSchema = Joi.object({
 });
 
 const updateSchema = Joi.object({
+  fullName: Joi.string().min(2).max(150),
+  email: Joi.string().email().max(150),
+  phone: Joi.string().max(30).allow('', null),
   jobTitle: Joi.string().valid(...JOB_TITLES),
   accessLevel: Joi.string().valid(...ACCESS_LEVELS),
 }).min(1);

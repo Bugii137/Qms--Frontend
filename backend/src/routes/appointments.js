@@ -37,6 +37,18 @@ router.get('/staff', authenticate, authorize('staff'), appointmentController.lis
 // ── Client ───────────────────────────────────────────────────────────────────
 router.post('/', authenticate, authorize('client'), appointmentController.book);
 router.get('/mine', authenticate, authorize('client'), appointmentController.listMine);
+router.put(
+  '/:id',
+  authenticate,
+  authorize('client', 'institution_admin', 'staff'),
+  appointmentController.update
+);
+router.delete(
+  '/:id',
+  authenticate,
+  authorize('client', 'institution_admin', 'staff'),
+  appointmentController.remove
+);
 router.get('/:id/queue-position', authenticate, authorize('client'), appointmentController.getQueuePosition);
 router.patch('/:id/cancel', authenticate, authorize('client'), appointmentController.cancelMine);
 

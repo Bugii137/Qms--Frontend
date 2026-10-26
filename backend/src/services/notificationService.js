@@ -55,4 +55,13 @@ async function markAllRead(userId) {
   await query(`UPDATE notifications SET is_read = TRUE WHERE user_id = $1 AND is_read = FALSE`, [userId]);
 }
 
+async function remove(userId, notificationId) {
+  const { rowCount } = await query(
+    'DELETE FROM notifications WHERE id = $1 AND user_id = $2',
+    [notificationId, userId]
+  );
+  if (!rowCount) throw new AppError('Notification not found', 404);
+}
+
+
 module.exports = { create, listForUser, markRead, markAllRead };

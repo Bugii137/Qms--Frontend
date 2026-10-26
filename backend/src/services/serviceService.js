@@ -131,7 +131,10 @@ async function setStatus(ownerId, serviceId, isActive) {
 
 async function remove(ownerId, serviceId) {
   await assertOwnedService(ownerId, serviceId);
-  await query('DELETE FROM services WHERE id = $1', [serviceId]);
+  await query(
+    'UPDATE services SET is_active = FALSE, updated_at = NOW() WHERE id = $1',
+    [serviceId]
+  );
 }
 
 module.exports = {
