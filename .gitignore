@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 backend/.env
 .env
+
+# Environment-specific demo and seeding scripts
+backend/seed_*.sh

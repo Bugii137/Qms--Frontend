@@ -134,12 +134,20 @@ async function book(clientId, { institutionId, serviceId, appointmentDate, appoi
     throw new AppError('This service is not available at this institution', 400);
   }
 
-  const { rows } = await query(
-    `INSERT INTO appointments (client_id, institution_id, service_id, appointment_date, appointment_time, notes)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING id`,
-    [clientId, institutionId, serviceId, appointmentDate, appointmentTime, notes || null]
-  );
+  let rows;
+  try {
+    ({ rows } = await query(
+      `INSERT INTO appointments (client_id, institution_id, service_id, appointment_date, appointment_time, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
+      [clientId, institutionId, serviceId, appointmentDate, appointmentTime, notes || null]
+    ));
+  } catch (err) {
+    if (err.code === '23505' && err.constraint === 'idx_appointments_active_slot') {
+      throw new AppError('This appointment slot is already booked', 409);
+    }
+    throw err;
+  }
 
   const appointment = await getByIdRaw(rows[0].id);
   await notifyClient(appointment, 'requested');
@@ -294,12 +302,20 @@ async function rebookForClient(ownerId, { clientId, serviceId, appointmentDate, 
     throw new AppError('This service is not available at this institution', 400);
   }
 
-  const { rows } = await query(
-    `INSERT INTO appointments (client_id, institution_id, service_id, appointment_date, appointment_time, notes)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING id`,
-    [clientId, institutionId, serviceId, appointmentDate, appointmentTime, notes || null]
-  );
+  let rows;
+  try {
+    ({ rows } = await query(
+      `INSERT INTO appointments (client_id, institution_id, service_id, appointment_date, appointment_time, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
+      [clientId, institutionId, serviceId, appointmentDate, appointmentTime, notes || null]
+    ));
+  } catch (err) {
+    if (err.code === '23505' && err.constraint === 'idx_appointments_active_slot') {
+      throw new AppError('This appointment slot is already booked', 409);
+    }
+    throw err;
+  }
 
   const appointment = await getByIdRaw(rows[0].id);
   await notifyClient(appointment, 'follow_up');
@@ -507,11 +523,18 @@ async function updateAppointment(user, appointmentId, updates) {
   }
   if (!setClauses.length) throw new AppError('No valid fields provided to update', 400);
 
-  await query(
-    `UPDATE appointments SET ${setClauses.join(', ')}, updated_at = NOW()
-     WHERE id = $1`,
-    params
-  );
+  try {
+    await query(
+      `UPDATE appointments SET ${setClauses.join(', ')}, updated_at = NOW()
+       WHERE id = $1`,
+      params
+    );
+  } catch (err) {
+    if (err.code === '23505' && err.constraint === 'idx_appointments_active_slot') {
+      throw new AppError('This appointment slot is already booked', 409);
+    }
+    throw err;
+  }
   const updated = await getByIdRaw(appointmentId);
   const existingDate = existingAppointment.appointment_date instanceof Date
     ? existingAppointment.appointment_date.toISOString().slice(0, 10)
