@@ -3,8 +3,8 @@ import StaffLayout from "../../components/layout/StaffLayout";
 import notificationApi from '../../utils/notificationApi'
 
 const TYPE_ICON = {
-  appointment: { icon: '🔔', iconBg: 'bg-green-100', iconColor: 'text-green-600' },
-  general: { icon: '🔔', iconBg: 'bg-navy/10', iconColor: 'text-navy' },
+  appointment: { icon: '', iconBg: 'bg-green-100', iconColor: 'text-green-600' },
+  general: { icon: '', iconBg: 'bg-navy/10', iconColor: 'text-navy' },
 }
 
 function groupLabel(createdAt) {
@@ -113,7 +113,7 @@ export default function StaffNotifications() {
           <div className="text-sm text-gray-400 text-center py-14">Loading…</div>
         ) : notifications.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
-            <div className="text-3xl mb-2">🎉</div>
+            <div className="text-3xl mb-2"></div>
             <p className="text-sm font-medium">You are all caught up!</p>
             <p className="text-xs mt-1">No notifications yet</p>
           </div>

@@ -1,12 +1,16 @@
 import api from './api';
 
 const institutionApi = {
-  listPublic: ({ search, category } = {}) => {
+  listPublic: async ({ search, category } = {}) => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (category) params.set('category', category);
     const qs = params.toString();
-    return api.get(`/institutions${qs ? `?${qs}` : ''}`, { auth: false });
+    const result = await api.get(`/institutions${qs ? `?${qs}` : ''}`, { auth: false });
+    return {
+      ...result,
+      institutions: result.institutions.filter(institution => institution.status === 'active'),
+    };
   },
   getPublicById: (id) => api.get(`/institutions/${id}`, { auth: false }),
   getMine: () => api.get('/institutions/me'),

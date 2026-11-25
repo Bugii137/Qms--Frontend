@@ -107,7 +107,7 @@ function ProfileTab({ institution, onSaved }) {
             <div className="font-semibold text-sm text-gray-900 mb-1">{form.name}</div>
             <span className="bg-blue-100 text-blue-700 text-[10px] font-medium px-2 py-0.5 rounded mb-2 inline-block">{form.category}</span>
             <p className="text-xs text-gray-500 line-clamp-2 mb-1">{form.description}</p>
-            <p className="text-xs text-gray-400">📍 {form.address}</p>
+            <p className="text-xs text-gray-400"> {form.address}</p>
           </div>
         </div>
         {institution.status !== 'active' && (
@@ -222,7 +222,12 @@ function ServicesTab() {
                       <button
                         onClick={() => {
                           setEditingSvc(svc)
-                          setNewSvc({ name: svc.name, durationMinutes: String(svc.durationMinutes), description: svc.description || '', price: String(svc.price || 0) })
+                          setNewSvc({
+                            name: svc.name,
+                            durationMinutes: String(svc.durationMinutes),
+                            description: svc.description || '',
+                            price: String(svc.price || 0),
+                          })
                         }}
                         className="text-xs text-blue-600 hover:text-blue-800"
                       >Edit</button>

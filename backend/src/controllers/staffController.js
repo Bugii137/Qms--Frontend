@@ -2,13 +2,12 @@ const Joi = require('joi');
 const staffService = require('../services/staffService');
 
 const ACCESS_LEVELS = ['view_only', 'manage_appointments', 'full_access'];
-const JOB_TITLES = ['Receptionist', 'Doctor', 'Nurse', 'Lab Technician', 'Administrator'];
 
 const createSchema = Joi.object({
   fullName: Joi.string().min(2).max(150).required(),
   email: Joi.string().email().required(),
   phone: Joi.string().max(30).allow('', null),
-  jobTitle: Joi.string().valid(...JOB_TITLES).default('Receptionist'),
+  jobTitle: Joi.string().trim().min(2).max(50).default('Receptionist'),
   accessLevel: Joi.string().valid(...ACCESS_LEVELS).default('view_only'),
   password: Joi.string().min(8).required(),
 });
@@ -17,7 +16,7 @@ const updateSchema = Joi.object({
   fullName: Joi.string().min(2).max(150),
   email: Joi.string().email().max(150),
   phone: Joi.string().max(30).allow('', null),
-  jobTitle: Joi.string().valid(...JOB_TITLES),
+  jobTitle: Joi.string().trim().min(2).max(50),
   accessLevel: Joi.string().valid(...ACCESS_LEVELS),
 }).min(1);
 

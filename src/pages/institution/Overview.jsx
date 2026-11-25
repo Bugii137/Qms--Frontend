@@ -109,9 +109,9 @@ export default function InstitutionOverview() {
         {/* KPI cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
           {[
-            { label: "Today's Appointments", value: String(todayAppointments.length), icon: "📅", border: "border-l-blue-400" },
-            { label: "Completed",            value: String(completed),               icon: "✅", border: "border-l-green-brand" },
-            { label: "Pending Approval",     value: String(pending),                 icon: "⏰", border: "border-l-yellow-400" },
+            { label: "Today's Appointments", value: String(todayAppointments.length), icon: "", border: "border-l-blue-400" },
+            { label: "Completed",            value: String(completed),               icon: "", border: "border-l-green-brand" },
+            { label: "Pending Approval",     value: String(pending),                 icon: "", border: "border-l-yellow-400" },
             { label: "Cancelled / Rejected", value: String(cancelled),               icon: "⊗", border: "border-l-red-400" },
           ].map(k => (
             <div key={k.label} className={`card p-4 border-l-4 ${k.border}`}>

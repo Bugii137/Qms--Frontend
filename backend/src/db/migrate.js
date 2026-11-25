@@ -21,7 +21,7 @@ async function getAppliedMigrations() {
 }
 
 async function runMigrations() {
-  console.log(`\n🔧 Connecting to ${process.env.DB_NAME}@${process.env.DB_HOST}:${process.env.DB_PORT} as ${process.env.DB_USER}...`);
+  console.log(`\n Connecting to ${process.env.DB_NAME}@${process.env.DB_HOST}:${process.env.DB_PORT} as ${process.env.DB_USER}...`);
 
   await ensureMigrationsTable();
   const applied = await getAppliedMigrations();
@@ -40,7 +40,7 @@ async function runMigrations() {
 
   for (const file of files) {
     if (applied.has(file)) {
-      console.log(`  ⏭  ${file} (already applied)`);
+      console.log(`    ${file} (already applied)`);
       continue;
     }
 
@@ -52,18 +52,18 @@ async function runMigrations() {
       await client.query(sql);
       await client.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file]);
       await client.query('COMMIT');
-      console.log(`  ✅ ${file}`);
+      console.log(`   ${file}`);
       ranCount += 1;
     } catch (err) {
       await client.query('ROLLBACK');
-      console.error(`  ❌ ${file} failed:`, err.message);
+      console.error(`   ${file} failed:`, err.message);
       throw err;
     } finally {
       client.release();
     }
   }
 
-  console.log(`\n✨ Migrations complete. ${ranCount} applied, ${files.length - ranCount} already up to date.\n`);
+  console.log(`\n Migrations complete. ${ranCount} applied, ${files.length - ranCount} already up to date.\n`);
 }
 
 runMigrations()

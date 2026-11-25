@@ -38,6 +38,7 @@ import AdminOverview     from './pages/admin/Overview'
 import AdminUsers        from './pages/admin/Users'
 import AdminInstitutions from './pages/admin/Institutions'
 import AdminAnalytics    from './pages/admin/Analytics'
+import AdminReports      from './pages/admin/Reports'
 import AdminSettings     from './pages/admin/SystemSettings'
 
 // Error pages
@@ -102,6 +103,7 @@ export default function App() {
       <Route path="/admin/users"        element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
       <Route path="/admin/institutions" element={<PrivateRoute roles={['admin']}><AdminInstitutions /></PrivateRoute>} />
       <Route path="/admin/analytics"    element={<PrivateRoute roles={['admin']}><AdminAnalytics /></PrivateRoute>} />
+      <Route path="/admin/reports"      element={<PrivateRoute roles={['admin']}><AdminReports /></PrivateRoute>} />
       <Route path="/admin/settings"     element={<PrivateRoute roles={['admin']}><AdminSettings /></PrivateRoute>} />
 
       {/* 404 — catch-all */}

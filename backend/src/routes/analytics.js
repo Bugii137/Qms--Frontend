@@ -6,6 +6,7 @@ const { authenticate } = require('../middleware/authenticate');
 const { authorize } = require('../middleware/authorize');
 
 router.get('/summary', authenticate, authorize('admin'), analyticsController.getSummary);
+router.get('/report', authenticate, authorize('admin'), analyticsController.getReport);
 router.get('/', authenticate, authorize('admin'), analyticsController.getAnalytics);
 
 module.exports = router;

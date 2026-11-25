@@ -6,11 +6,11 @@ import notificationApi from "../../utils/notificationApi";
 
 const NAV_ITEMS = [
   { label: "Dashboard",        path: "/institution/overview",      icon: "⊞" },
-  { label: "Appointments",     path: "/institution/appointments",  icon: "📅" },
-  { label: "Queue Management", path: "/institution/queue",         icon: "🎟" },
-  { label: "Staff Management", path: "/institution/staff",         icon: "👥" },
-  { label: "Reports",          path: "/institution/reports",       icon: "📈" },
-  { label: "Settings",         path: "/institution/settings",      icon: "⚙️" },
+  { label: "Appointments",     path: "/institution/appointments",  icon: "" },
+  { label: "Queue Management", path: "/institution/queue",         icon: "" },
+  { label: "Staff Management", path: "/institution/staff",         icon: "" },
+  { label: "Reports",          path: "/institution/reports",       icon: "" },
+  { label: "Settings",         path: "/institution/settings",      icon: "" },
 ];
 
 const STATUS_BADGE = {
@@ -82,9 +82,6 @@ export default function InstitutionLayout({ children }) {
       </nav>
 
       <div className="px-2 pb-4 border-t border-white/10 pt-3 space-y-1">
-        <button className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-blue-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
-          ❓ Help &amp; Support
-        </button>
         <button
           onClick={() => { logout(); navigate("/login"); }}
           className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-red-300 hover:text-red-200 hover:bg-white/10 rounded-lg transition-colors"
@@ -118,17 +115,17 @@ export default function InstitutionLayout({ children }) {
         <header className="bg-white border-b border-gray-200 h-12 flex items-center justify-between px-3 md:px-5 flex-shrink-0">
           <div className="flex items-center gap-2">
             <button className="md:hidden p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" onClick={() => setMobileOpen(true)}>
-              ☰
+              Menu
             </button>
             <img src="/logo.png" alt="JIPANGE" className="h-7 md:h-8 w-auto" />
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
             <button
+              aria-label="Notifications"
               className="relative p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg"
               onClick={() => { setNotifOpen(!notifOpen); navigate("/institution/appointments"); }}
             >
-              🔔
               {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-gold-brand text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                   {unreadCount > 9 ? "9+" : unreadCount}

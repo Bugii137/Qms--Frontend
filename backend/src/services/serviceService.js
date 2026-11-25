@@ -30,7 +30,11 @@ async function getOwnedInstitutionId(ownerId) {
  */
 async function listPublicByInstitution(institutionId) {
   const { rows } = await query(
-    `SELECT * FROM services WHERE institution_id = $1 AND is_active = TRUE ORDER BY name ASC`,
+    `SELECT s.*
+     FROM services s
+     JOIN institutions i ON i.id = s.institution_id
+     WHERE s.institution_id = $1 AND s.is_active = TRUE AND i.status = 'active'
+     ORDER BY s.name ASC`,
     [institutionId]
   );
   return rows.map(toPublicService);
@@ -38,7 +42,10 @@ async function listPublicByInstitution(institutionId) {
 
 async function getPublicById(serviceId) {
   const { rows } = await query(
-    `SELECT * FROM services WHERE id = $1 AND is_active = TRUE`,
+    `SELECT s.*
+     FROM services s
+     JOIN institutions i ON i.id = s.institution_id
+     WHERE s.id = $1 AND s.is_active = TRUE AND i.status = 'active'`,
     [serviceId]
   );
   if (!rows[0]) throw new AppError('Service not found', 404);

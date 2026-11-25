@@ -15,6 +15,7 @@ export default function StaffProfile() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [emailNotice, setEmailNotice] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -33,11 +34,13 @@ export default function StaffProfile() {
 
   const handleSave = async () => {
     setError("");
+    setEmailNotice("");
     setSaving(true);
     try {
-      const { user: updated } = await authApi.updateProfile({ fullName: form.fullName, phone: form.phone });
+      const { user: updated, emailSent } = await authApi.updateProfile({ fullName: form.fullName, phone: form.phone });
       updateUser({ ...updated, name: updated.fullName });
       setSaved(true);
+      if (emailSent === false) setEmailNotice("Changes were saved, but we could not send the profile update email.");
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       setError(err.message || "Could not save changes.");
@@ -87,13 +90,16 @@ export default function StaffProfile() {
             </div>
 
             {editable ? (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className={`mt-4 text-sm px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${saved ? "bg-green-100 text-green-700 border border-green-300" : "btn-primary"}`}
-              >
-                {saving ? "Saving…" : saved ? "✓ Changes saved" : "Save Changes"}
-              </button>
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className={`mt-4 text-sm px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${saved ? "bg-green-100 text-green-700 border border-green-300" : "btn-primary"}`}
+                >
+                  {saving ? "Saving…" : saved ? "✓ Changes saved" : "Save Changes"}
+                </button>
+                {emailNotice && <p role="status" className="text-xs text-amber-700 mt-2">{emailNotice}</p>}
+              </>
             ) : (
               <p className="text-xs text-gray-400 mt-4">
                 Your profile is managed by your Institution Admin. Contact them to request changes.

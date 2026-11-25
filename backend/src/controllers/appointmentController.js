@@ -12,8 +12,37 @@ const bookSchema = Joi.object({
   notes: Joi.string().max(500).allow('', null),
 });
 
+const rebookSchema = Joi.object({
+  clientId: Joi.number().integer().required(),
+  serviceId: Joi.number().integer().required(),
+  appointmentDate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+  appointmentTime: Joi.string()
+    .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .required()
+    .messages({ 'string.pattern.base': 'appointmentTime must be in HH:mm 24-hour format' }),
+  notes: Joi.string().max(500).allow('', null),
+});
+
 const statusSchema = Joi.object({
   status: Joi.string().valid('pending', 'approved', 'rejected', 'cancelled', 'completed').required(),
+});
+
+const institutionReportSchema = Joi.object({
+  from: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+  to: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+  status: Joi.string().valid('pending', 'approved', 'rejected', 'cancelled', 'completed'),
+  serviceId: Joi.number().integer().positive(),
+}).custom((value, helpers) => {
+  const isValidDate = (date) => {
+    const parsed = new Date(`${date}T00:00:00.000Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+  };
+  if (!isValidDate(value.from) || !isValidDate(value.to)) return helpers.error('any.invalid');
+  if (value.from > value.to) return helpers.error('date.order');
+  return value;
+}).messages({
+  'any.invalid': 'from and to must be valid calendar dates in YYYY-MM-DD format',
+  'date.order': 'from must be on or before to',
 });
 
 const assignSchema = Joi.object({
@@ -91,6 +120,29 @@ async function listForInstitution(req, res, next) {
   }
 }
 
+async function getInstitutionReport(req, res, next) {
+  try {
+    const { error, value } = institutionReportSchema.validate(req.query);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+    const report = await appointmentService.getInstitutionReport(req.user.id, value);
+    res.json({ report });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function rebookForClient(req, res, next) {
+  try {
+    const { error, value } = rebookSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const appointment = await appointmentService.rebookForClient(req.user.id, value);
+    res.status(201).json({ appointment });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function assignStaff(req, res, next) {
   try {
     const { error, value } = assignSchema.validate(req.body);
@@ -161,6 +213,8 @@ module.exports = {
   update,
   remove,
   listForInstitution,
+  getInstitutionReport,
+  rebookForClient,
   assignStaff,
   getQueue,
   callNext,

@@ -149,9 +149,9 @@ export default function AdminUsers() {
         {/* KPI chips */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-5">
           {[
-            { label: "Total Users", value: total, icon: "👥", border: "border-l-blue-500" },
-            { label: "Clients", value: clients, icon: "👤", border: "border-l-green-brand" },
-            { label: "Institution Admins", value: institutionAdmins, icon: "🏢", border: "border-l-yellow-400" },
+            { label: "Total Users", value: total, icon: "", border: "border-l-blue-500" },
+            { label: "Clients", value: clients, icon: "", border: "border-l-green-brand" },
+            { label: "Institution Admins", value: institutionAdmins, icon: "", border: "border-l-yellow-400" },
           ].map(k => (
             <div key={k.label} className={`card p-4 border-l-4 ${k.border}`}>
               <div className="flex justify-between items-start">

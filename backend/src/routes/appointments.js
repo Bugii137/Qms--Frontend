@@ -7,10 +7,22 @@ const { authorize } = require('../middleware/authorize');
 
 // ── Institution admin (static paths before /:id) ─────────────────────────────
 router.get(
+  '/institution/report',
+  authenticate,
+  authorize('institution_admin'),
+  appointmentController.getInstitutionReport
+);
+router.get(
   '/institution',
   authenticate,
   authorize('institution_admin'),
   appointmentController.listForInstitution
+);
+router.post(
+  '/institution/rebook',
+  authenticate,
+  authorize('institution_admin'),
+  appointmentController.rebookForClient
 );
 router.get(
   '/institution/queue',

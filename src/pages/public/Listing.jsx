@@ -81,7 +81,7 @@ export default function ListingPage() {
                 <div className="font-semibold text-gray-900 text-sm mb-1">{inst.name}</div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${CAT_COLORS[inst.category] || CAT_COLORS.Other}`}>{inst.category || 'Other'}</span>
-                  {inst.address && <span className="text-xs text-gray-500">📍 {inst.address}</span>}
+                  {inst.address && <span className="text-xs text-gray-500"> {inst.address}</span>}
                 </div>
                 <p className="text-xs text-gray-500 line-clamp-2">{inst.description}</p>
                 <p className="text-xs text-gray-400 mt-1">{inst.servicesCount ?? 0} services available</p>

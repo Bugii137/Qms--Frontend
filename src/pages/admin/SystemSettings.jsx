@@ -12,6 +12,7 @@ export default function SystemSettings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [maintenanceNotice, setMaintenanceNotice] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -31,11 +32,13 @@ export default function SystemSettings() {
 
   const handleSave = async (patch) => {
     setError("");
+    setMaintenanceNotice(null);
     setSaving(true);
     try {
-      const { settings: updated } = await settingsApi.update(patch);
+      const { settings: updated, maintenanceNotice: notice } = await settingsApi.update(patch);
       setSettings(updated);
       setForm(updated);
+      setMaintenanceNotice(notice);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
@@ -55,9 +58,21 @@ export default function SystemSettings() {
           <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-4">{error}</div>
         )}
 
+        {maintenanceNotice && (
+          <div className={`border rounded-lg px-3 py-2 mb-4 text-xs ${
+            maintenanceNotice.error || maintenanceNotice.emailFailed
+              ? "bg-yellow-50 border-yellow-200 text-yellow-800"
+              : "bg-green-50 border-green-200 text-green-700"
+          }`}>
+            {maintenanceNotice.error
+              ? `Maintenance was enabled, but notifications could not be sent: ${maintenanceNotice.error}`
+              : `Maintenance notice sent in-app to ${maintenanceNotice.inAppSent} users and by email to ${maintenanceNotice.emailSent} users.${maintenanceNotice.emailFailed ? ` ${maintenanceNotice.emailFailed} emails failed to send.${maintenanceNotice.emailError ? ` Reason: ${maintenanceNotice.emailError}` : ""}` : ""}`}
+          </div>
+        )}
+
         {settings?.maintenanceMode && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-2 mb-4 flex items-center gap-2">
-            <span>🚧</span> Maintenance Mode is currently <strong>ON</strong> — regular users cannot access the platform right now.
+            <span></span> Maintenance Mode is currently <strong>ON</strong> — regular users cannot access the platform right now.
           </div>
         )}
 

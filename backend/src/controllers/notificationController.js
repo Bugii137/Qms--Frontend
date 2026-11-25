@@ -1,4 +1,11 @@
 const notificationService = require('../services/notificationService');
+const Joi = require('joi');
+
+const preferencesSchema = Joi.object(
+  Object.fromEntries(
+    Object.keys(notificationService.PREFERENCE_DEFAULTS).map(key => [key, Joi.boolean()])
+  )
+).min(1);
 
 async function listMine(req, res, next) {
   try {
@@ -37,4 +44,24 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { listMine, markRead, markAllRead, remove };
+async function getPreferences(req, res, next) {
+  try {
+    const preferences = await notificationService.getPreferences(req.user.id);
+    res.json({ preferences });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updatePreferences(req, res, next) {
+  try {
+    const { error, value } = preferencesSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+    const preferences = await notificationService.updatePreferences(req.user.id, value);
+    res.json({ preferences });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { listMine, markRead, markAllRead, remove, getPreferences, updatePreferences };

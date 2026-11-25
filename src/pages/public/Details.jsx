@@ -118,9 +118,9 @@ export default function DetailsPage() {
           <div className="flex-1">
             <div className="text-white font-bold text-xl mb-1">{institution.name}</div>
             <div className="flex items-center gap-4 text-sm text-blue-200 mb-1">
-              {institution.address && <span>📍 {institution.address}</span>}
-              {institution.phone && <span>📞 {institution.phone}</span>}
-              {institution.email && <span>✉ {institution.email}</span>}
+              {institution.address && <span> {institution.address}</span>}
+              {institution.phone && <span> {institution.phone}</span>}
+              {institution.email && <span> {institution.email}</span>}
             </div>
             {institution.category && (
               <span className="bg-yellow-400 text-yellow-900 text-[10px] font-semibold px-2 py-0.5 rounded mr-2">{institution.category}</span>
@@ -153,7 +153,7 @@ export default function DetailsPage() {
                   <div>
                     <div className="font-medium text-sm text-gray-900">{svc.name}</div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400">⏱ {svc.durationMinutes} min</span>
+                      <span className="text-xs text-gray-400"> {svc.durationMinutes} min</span>
                       {svc.price > 0 && <span className="text-xs text-gray-400">· KES {svc.price}</span>}
                     </div>
                   </div>

@@ -4,9 +4,9 @@ import { useAuth } from "../../context/AuthContext";
 
 const NAV_ITEMS = [
   { label: "Dashboard",       path: "/staff/dashboard",     icon: "⊞" },
-  { label: "My Appointments", path: "/staff/appointments",  icon: "📅" },
-  { label: "Notifications",   path: "/staff/notifications", icon: "🔔" },
-  { label: "Profile & Settings", path: "/staff/profile",    icon: "👤" },
+  { label: "My Appointments", path: "/staff/appointments",  icon: "" },
+  { label: "Notifications",   path: "/staff/notifications", icon: "" },
+  { label: "Profile & Settings", path: "/staff/profile",    icon: "" },
 ];
 
 const ACCESS_BADGE = {
@@ -104,17 +104,17 @@ export default function StaffLayout({ children }) {
         <header className="bg-white border-b border-gray-200 h-12 flex items-center justify-between px-3 md:px-5 flex-shrink-0">
           <div className="flex items-center gap-2">
             <button className="md:hidden p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" onClick={() => setMobileOpen(true)}>
-              ☰
+              Menu
             </button>
             <img src="/logo.png" alt="JIPANGE" className="h-7 md:h-8 w-auto" />
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
             <button
+              aria-label="Notifications"
               className="relative p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg"
               onClick={() => setNotifOpen(!notifOpen)}
             >
-              🔔
               <span className="absolute -top-0.5 -right-0.5 bg-gold-brand text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                 2
               </span>

@@ -76,7 +76,7 @@ app.use(errorHandler);
 
 // ── Start server ──────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`\n🚀 Jipange API running on http://localhost:${PORT}`);
+  console.log(`\n Jipange API running on http://localhost:${PORT}`);
   console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
 });
 

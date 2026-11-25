@@ -3,11 +3,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const NAV_ITEMS = [
-  { label: "Overview",          path: "/admin/overview",      icon: "📊" },
-  { label: "Users",             path: "/admin/users",         icon: "👥" },
-  { label: "Institutions",      path: "/admin/institutions",  icon: "🏢" },
-  { label: "Analytics",         path: "/admin/analytics",     icon: "📈" },
-  { label: "Platform Settings", path: "/admin/settings",      icon: "⚙️" },
+  { label: "Overview",          path: "/admin/overview",      icon: "" },
+  { label: "Users",             path: "/admin/users",         icon: "" },
+  { label: "Institutions",      path: "/admin/institutions",  icon: "" },
+  { label: "Analytics",         path: "/admin/analytics",     icon: "" },
+  { label: "Reports",           path: "/admin/reports",       icon: "" },
+  { label: "Platform Settings", path: "/admin/settings",      icon: "" },
 ];
 
 export default function AdminLayout({ children }) {
@@ -57,12 +58,6 @@ export default function AdminLayout({ children }) {
       </nav>
 
       <div className="px-2 pb-4 border-t border-white/10 pt-3 space-y-1">
-        <button className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
-          📋 Activity Log
-        </button>
-        <button className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
-          📚 Documentation
-        </button>
         <button
           onClick={() => { logout(); navigate("/login"); }}
           className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-white/10 rounded-lg transition-colors"
@@ -97,7 +92,7 @@ export default function AdminLayout({ children }) {
         <header className="bg-white border-b border-gray-200 h-12 flex items-center justify-between px-3 md:px-5 flex-shrink-0">
           <div className="flex items-center gap-2">
             <button className="md:hidden p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" onClick={() => setMobileOpen(true)}>
-              ☰
+              Menu
             </button>
             <img src="/logo.png" alt="JIPANGE" className="h-7 md:h-8 w-auto" />
           </div>

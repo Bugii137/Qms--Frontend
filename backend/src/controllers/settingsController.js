@@ -22,8 +22,8 @@ async function updateSettings(req, res, next) {
     const { error, value } = updateSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const settings = await settingsService.updateSettings(value);
-    res.json({ settings });
+    const result = await settingsService.updateSettings(value);
+    res.json(result);
   } catch (err) {
     next(err);
   }

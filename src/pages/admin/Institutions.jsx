@@ -22,6 +22,7 @@ export default function AdminInstitutions() {
   const [institutions, setInstitutions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [statusNotice, setStatusNotice] = useState(null);
   const [actingId, setActingId] = useState(null);
   const [users, setUsers] = useState([]);
   const [institutionOwnerIds, setInstitutionOwnerIds] = useState([]);
@@ -101,8 +102,20 @@ export default function AdminInstitutions() {
 
   const handleSetStatus = async (id, status) => {
     setActingId(id);
+    setStatusNotice(null);
     try {
-      await institutionApi.setStatus(id, status);
+      const result = await institutionApi.setStatus(id, status);
+      if (result.emailSent === false) {
+        setStatusNotice({
+          type: "warning",
+          message: "Institution status updated, but the email notification could not be sent.",
+        });
+      } else if (result.emailSent === true) {
+        setStatusNotice({
+          type: "success",
+          message: "Institution status updated and the email notification was accepted for delivery.",
+        });
+      }
       load();
     } catch (err) {
       setError(err.message || "Could not update this institution.");
@@ -190,6 +203,18 @@ export default function AdminInstitutions() {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-4">{error}</div>
         )}
+        {statusNotice && (
+          <div
+            role="status"
+            className={`rounded-lg px-3 py-2 mb-4 text-xs ${
+              statusNotice.type === "warning"
+                ? "bg-amber-50 border border-amber-200 text-amber-800"
+                : "bg-green-50 border border-green-200 text-green-800"
+            }`}
+          >
+            {statusNotice.message}
+          </div>
+        )}
 
         {/* Table */}
         <div className="card overflow-hidden">
@@ -251,9 +276,9 @@ export default function AdminInstitutions() {
                           <button
                             disabled={actingId === inst.id}
                             onClick={() => handleSetStatus(inst.id, "suspended")}
-                            className="text-gray-400 hover:text-yellow-500 text-base disabled:opacity-40"
+                            className="text-xs bg-yellow-50 text-yellow-700 border border-yellow-200 px-2 py-0.5 rounded hover:bg-yellow-100 disabled:opacity-40"
                             title="Suspend"
-                          >⚠</button>
+                          >Suspend</button>
                         ) : (
                           <button
                             disabled={actingId === inst.id}

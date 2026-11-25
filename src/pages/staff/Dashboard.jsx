@@ -88,7 +88,7 @@ export default function StaffDashboard() {
           </div>
           {!allowed && (
             <span className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg font-medium">
-              👁 View Only — navigation and viewing only
+               View Only — navigation and viewing only
             </span>
           )}
         </div>
@@ -100,20 +100,20 @@ export default function StaffDashboard() {
         {/* Welcome banner */}
         <div className="bg-green-brand rounded-xl p-4 flex items-center justify-between mb-5">
           <div>
-            <div className="text-white font-semibold text-base">{greeting()}, {user?.name?.split(' ')[0] || 'there'} 👋</div>
+            <div className="text-white font-semibold text-base">{greeting()}, {user?.name?.split(' ')[0] || 'there'} </div>
             <div className="text-green-50 text-sm mt-0.5">
               {approved.length} client{approved.length === 1 ? '' : 's'} in queue today.
             </div>
           </div>
-          <span className="text-4xl opacity-40">🎟</span>
+          <span className="text-4xl opacity-40"></span>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-5">
           {[
-            { label: "Now Serving", value: nowServing ? nowServing.clientName : "—", icon: "▶", border: "border-l-green-brand" },
-            { label: "Waiting", value: String(waiting.length), icon: "⏳", border: "border-l-yellow-400" },
-            { label: "Completed Today", value: String(completedToday), icon: "✅", border: "border-l-blue-400" },
+            { label: "Now Serving", value: nowServing ? nowServing.clientName : "—", icon: "", border: "border-l-green-brand" },
+            { label: "Waiting", value: String(waiting.length), icon: "", border: "border-l-yellow-400" },
+            { label: "Completed Today", value: String(completedToday), icon: "", border: "border-l-blue-400" },
           ].map(k => (
             <div key={k.label} className={`card p-4 border-l-4 ${k.border}`}>
               <div className="flex items-start justify-between">

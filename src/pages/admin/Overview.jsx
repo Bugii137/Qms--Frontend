@@ -60,10 +60,10 @@ export default function AdminOverview() {
         {/* KPI cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
           {[
-            { label: "Total Institutions", value: institutionCounts.total, sub: `${institutionCounts.pending} pending approval`, icon: "🏢", border: "border-l-blue-500" },
-            { label: "Total Users",        value: summary?.users.total ?? 0, sub: "Across all roles", icon: "👥", border: "border-l-green-brand" },
-            { label: "Appointments Today", value: summary?.appointmentsToday ?? 0, sub: "Across all institutions", icon: "📅", border: "border-l-yellow-400" },
-            { label: "Active Institutions", value: institutionCounts.active, sub: `${institutionCounts.suspended} suspended`, icon: "✅", border: "border-l-purple-400" },
+            { label: "Total Institutions", value: institutionCounts.total, sub: `${institutionCounts.pending} pending approval`, icon: "", border: "border-l-blue-500" },
+            { label: "Total Users",        value: summary?.users.total ?? 0, sub: "Across all roles", icon: "", border: "border-l-green-brand" },
+            { label: "Appointments Today", value: summary?.appointmentsToday ?? 0, sub: "Across all institutions", icon: "", border: "border-l-yellow-400" },
+            { label: "Active Institutions", value: institutionCounts.active, sub: `${institutionCounts.suspended} suspended`, icon: "", border: "border-l-purple-400" },
           ].map(k => (
             <div key={k.label} className={`card p-4 border-l-4 ${k.border}`}>
               <div className="flex items-start justify-between">

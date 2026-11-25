@@ -3,29 +3,38 @@ import ClientLayout from '../../components/layout/ClientLayout'
 import { useAuth } from '../../context/AuthContext'
 import authApi from '../../utils/authApi'
 import appointmentApi from '../../utils/appointmentApi'
+import notificationApi from '../../utils/notificationApi'
 
 const TABS = ['Personal Info', 'Security', 'Notification Preferences']
 
 const NOTIF_TOGGLES = [
-  { key: 'emailApproved',   label: 'Appointment Approved',  channel: 'email', default: true  },
-  { key: 'emailRejected',   label: 'Appointment Rejected',  channel: 'email', default: true  },
-  { key: 'emailReminder',   label: 'Appointment Reminder',  channel: 'email', default: true  },
-  { key: 'emailConfirmed',  label: 'Booking Confirmed',     channel: 'email', default: true  },
-  { key: 'appApproved',     label: 'Appointment Approved',  channel: 'app',   default: true  },
-  { key: 'appRejected',     label: 'Appointment Rejected',  channel: 'app',   default: true  },
-  { key: 'appReminder',     label: 'Appointment Reminder',  channel: 'app',   default: true  },
-  { key: 'appConfirmed',    label: 'Booking Confirmed',     channel: 'app',   default: true  },
+  { key: 'emailConfirmed',  label: 'Booking Request Received', channel: 'email' },
+  { key: 'emailApproved',   label: 'Appointment Approved',     channel: 'email' },
+  { key: 'emailRejected',   label: 'Appointment Declined',     channel: 'email' },
+  { key: 'emailRescheduled',label: 'Appointment Rescheduled',  channel: 'email' },
+  { key: 'emailCancelled',  label: 'Appointment Cancelled',    channel: 'email' },
+  { key: 'emailCompleted',  label: 'Appointment Completed',    channel: 'email' },
+  { key: 'appConfirmed',    label: 'Booking Request Received', channel: 'app' },
+  { key: 'appApproved',     label: 'Appointment Approved',     channel: 'app' },
+  { key: 'appRejected',     label: 'Appointment Declined',     channel: 'app' },
+  { key: 'appRescheduled',  label: 'Appointment Rescheduled',  channel: 'app' },
+  { key: 'appCancelled',    label: 'Appointment Cancelled',    channel: 'app' },
+  { key: 'appCompleted',    label: 'Appointment Completed',    channel: 'app' },
 ]
 
 function initialsOf(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-function Toggle({ on, onChange }) {
+function Toggle({ label, on, onChange, disabled }) {
   return (
     <button
+      type="button"
+      aria-label={label}
+      aria-pressed={on}
+      disabled={disabled}
       onClick={() => onChange(!on)}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 disabled:opacity-50 ${
         on ? 'bg-green-brand' : 'bg-gray-200'
       }`}
     >
@@ -47,6 +56,7 @@ export default function ClientProfile() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [profileEmailNotice, setProfileEmailNotice] = useState('')
   const [totalBookings, setTotalBookings] = useState(null)
 
   useEffect(() => {
@@ -57,11 +67,13 @@ export default function ClientProfile() {
 
   const handleSave = async () => {
     setSaveError('')
+    setProfileEmailNotice('')
     setSaving(true)
     try {
-      const { user: updated } = await authApi.updateProfile({ fullName: form.fullName, phone: form.phone })
+      const { user: updated, emailSent } = await authApi.updateProfile({ fullName: form.fullName, phone: form.phone })
       updateUser({ ...updated, name: updated.fullName })
       setSaved(true)
+      if (emailSent === false) setProfileEmailNotice('Changes were saved, but we could not send the profile update email.')
       setTimeout(() => setSaved(false), 2500)
     } catch (err) {
       setSaveError(err.message || 'Could not save changes.')
@@ -76,6 +88,7 @@ export default function ClientProfile() {
   const [pwSaving, setPwSaving] = useState(false)
   const [pwSaved, setPwSaved] = useState(false)
   const [pwError, setPwError] = useState('')
+  const [passwordEmailNotice, setPasswordEmailNotice] = useState('')
 
   const setPwField = k => e => {
     setPw(p => ({ ...p, [k]: e.target.value }))
@@ -92,6 +105,7 @@ export default function ClientProfile() {
 
   const handlePwSave = async () => {
     setPwError('')
+    setPasswordEmailNotice('')
     if (pw.next !== pw.confirm) {
       setPwError('Passwords do not match.')
       return
@@ -102,10 +116,11 @@ export default function ClientProfile() {
     }
     setPwSaving(true)
     try {
-      await authApi.changePassword(pw.current, pw.next)
+      const { emailSent } = await authApi.changePassword(pw.current, pw.next)
       setPw({ current: '', next: '', confirm: '' })
       setPwStrength(0)
       setPwSaved(true)
+      if (emailSent === false) setPasswordEmailNotice('Your password changed, but we could not send the security notification email.')
       setTimeout(() => setPwSaved(false), 2500)
     } catch (err) {
       setPwError(err.message || 'Could not update password.')
@@ -114,10 +129,42 @@ export default function ClientProfile() {
     }
   }
 
-  // Notification preferences — UI only for now, no backend model yet.
-  const [toggles, setToggles] = useState(
-    Object.fromEntries(NOTIF_TOGGLES.map(t => [t.key, t.default]))
-  )
+  const [toggles, setToggles] = useState(null)
+  const [preferencesLoading, setPreferencesLoading] = useState(true)
+  const [preferencesSaving, setPreferencesSaving] = useState(false)
+  const [preferencesError, setPreferencesError] = useState('')
+  const [preferencesSaved, setPreferencesSaved] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    notificationApi.getPreferences()
+      .then(({ preferences }) => {
+        if (active) setToggles(preferences)
+      })
+      .catch(err => {
+        if (active) setPreferencesError(err.message || 'Could not load notification preferences.')
+      })
+      .finally(() => {
+        if (active) setPreferencesLoading(false)
+      })
+    return () => { active = false }
+  }, [])
+
+  const savePreferences = async () => {
+    if (!toggles) return
+    setPreferencesSaving(true)
+    setPreferencesError('')
+    setPreferencesSaved(false)
+    try {
+      const { preferences } = await notificationApi.updatePreferences(toggles)
+      setToggles(preferences)
+      setPreferencesSaved(true)
+    } catch (err) {
+      setPreferencesError(err.message || 'Could not save notification preferences.')
+    } finally {
+      setPreferencesSaving(false)
+    }
+  }
 
   const strengthColor = ['bg-gray-200', 'bg-red-400', 'bg-yellow-400', 'bg-blue-400', 'bg-green-brand'][pwStrength]
   const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'][pwStrength]
@@ -194,6 +241,9 @@ export default function ClientProfile() {
                     Discard
                   </button>
                 </div>
+                {profileEmailNotice && (
+                  <p role="status" className="text-xs text-amber-700 mt-3">{profileEmailNotice}</p>
+                )}
               </div>
 
               {/* Account Info */}
@@ -258,6 +308,9 @@ export default function ClientProfile() {
               >
                 {pwSaving ? 'Updating…' : pwSaved ? '✓ Password updated' : 'Update Password'}
               </button>
+              {passwordEmailNotice && (
+                <p role="status" className="text-xs text-amber-700">{passwordEmailNotice}</p>
+              )}
             </div>
 
             {/* Danger zone */}
@@ -276,21 +329,28 @@ export default function ClientProfile() {
         {/* ── NOTIFICATION PREFERENCES ── */}
         {activeTab === 'Notification Preferences' && (
           <div className="max-w-lg space-y-4">
-            <p className="text-xs text-gray-400">
-              These preferences aren't connected to a backend yet — appointment notifications are currently sent by default.
+            <p className="text-xs text-gray-500">
+              Choose whether to receive booking updates by email or in-app. Security and account alerts may still be sent when needed to protect your account.
             </p>
+            {preferencesLoading && <p role="status" className="text-xs text-gray-500">Loading preferences…</p>}
+            {preferencesError && <p role="alert" className="text-xs text-red-600">{preferencesError}</p>}
             {/* Email notifications */}
             <div className="card p-5">
               <h3 className="text-sm font-semibold text-gray-800 mb-4">
-                📧 Email Notifications
+                 Email Notifications
               </h3>
               <div className="space-y-4">
                 {NOTIF_TOGGLES.filter(t => t.channel === 'email').map(t => (
                   <div key={t.key} className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">{t.label}</span>
                     <Toggle
-                      on={toggles[t.key]}
-                      onChange={v => setToggles(s => ({ ...s, [t.key]: v }))}
+                      label={t.label}
+                      on={Boolean(toggles?.[t.key])}
+                      disabled={preferencesLoading || preferencesSaving || !toggles}
+                      onChange={v => {
+                        setToggles(s => ({ ...s, [t.key]: v }))
+                        setPreferencesSaved(false)
+                      }}
                     />
                   </div>
                 ))}
@@ -300,23 +360,32 @@ export default function ClientProfile() {
             {/* In-app notifications */}
             <div className="card p-5">
               <h3 className="text-sm font-semibold text-gray-800 mb-4">
-                🔔 In-App Notifications
+                 In-App Notifications
               </h3>
               <div className="space-y-4">
                 {NOTIF_TOGGLES.filter(t => t.channel === 'app').map(t => (
                   <div key={t.key} className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">{t.label}</span>
                     <Toggle
-                      on={toggles[t.key]}
-                      onChange={v => setToggles(s => ({ ...s, [t.key]: v }))}
+                      label={t.label}
+                      on={Boolean(toggles?.[t.key])}
+                      disabled={preferencesLoading || preferencesSaving || !toggles}
+                      onChange={v => {
+                        setToggles(s => ({ ...s, [t.key]: v }))
+                        setPreferencesSaved(false)
+                      }}
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            <button disabled title="Not connected to a backend yet" className="text-sm px-5 py-2 rounded-lg font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
-              Save Preferences
+            <button
+              onClick={savePreferences}
+              disabled={preferencesLoading || preferencesSaving || !toggles}
+              className="btn-primary text-sm px-5 py-2 disabled:opacity-50"
+            >
+              {preferencesSaving ? 'Saving…' : preferencesSaved ? '✓ Preferences saved' : 'Save Preferences'}
             </button>
           </div>
         )}

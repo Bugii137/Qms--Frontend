@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import InstitutionLayout from "../../components/layout/InstitutionLayout";
 import EmptyState from "../../components/common/EmptyState";
 import appointmentApi from "../../utils/appointmentApi";
-import { parseYMD } from '../../utils/date'
+import serviceApi from "../../utils/serviceApi";
+import { parseYMD, todayLocal } from '../../utils/date'
 
 const TABS = [
   { label: "All", filter: "all" },
@@ -45,6 +46,11 @@ export default function InstitutionAppointments() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actingId, setActingId] = useState(null);
+  const [followUp, setFollowUp] = useState(null);
+  const [services, setServices] = useState([]);
+  const [followUpForm, setFollowUpForm] = useState({ serviceId: "", appointmentDate: todayLocal(), appointmentTime: "", notes: "" });
+  const [savingFollowUp, setSavingFollowUp] = useState(false);
+  const [followUpError, setFollowUpError] = useState("");
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [editForm, setEditForm] = useState({ appointmentDate: "", appointmentTime: "", notes: "" });
   const [savingEdit, setSavingEdit] = useState(false);
@@ -111,6 +117,47 @@ export default function InstitutionAppointments() {
     }
   };
 
+  const openFollowUp = async (appointment) => {
+    setFollowUpError("");
+    try {
+      const { services: institutionServices } = await serviceApi.listMine();
+      const activeServices = institutionServices.filter(service => service.isActive);
+      setServices(activeServices);
+      setFollowUpForm({
+        serviceId: String(activeServices.find(service => service.id === appointment.serviceId)?.id ?? activeServices[0]?.id ?? ""),
+        appointmentDate: todayLocal(),
+        appointmentTime: "",
+        notes: `Follow-up after appointment #${appointment.id}`,
+      });
+      setFollowUp(appointment);
+    } catch (err) {
+      setError(err.message || "Could not load services for the follow-up.");
+    }
+  };
+
+  const handleFollowUpSubmit = async (event) => {
+    event.preventDefault();
+    if (!followUp) return;
+
+    setFollowUpError("");
+    setSavingFollowUp(true);
+    try {
+      await appointmentApi.rebookForClient({
+        clientId: followUp.clientId,
+        serviceId: Number(followUpForm.serviceId),
+        appointmentDate: followUpForm.appointmentDate,
+        appointmentTime: followUpForm.appointmentTime,
+        notes: followUpForm.notes,
+      });
+      setFollowUp(null);
+      load();
+    } catch (err) {
+      setFollowUpError(err.message || "Could not schedule this follow-up.");
+    } finally {
+      setSavingFollowUp(false);
+    }
+  };
+
   const filtered = appointments.filter(a =>
     a.clientName?.toLowerCase().includes(search.toLowerCase()) ||
     a.serviceName?.toLowerCase().includes(search.toLowerCase())
@@ -151,7 +198,7 @@ export default function InstitutionAppointments() {
             <div className="py-14 text-center text-sm text-gray-400">Loading…</div>
           ) : filtered.length === 0 ? (
             <EmptyState
-              icon="📋"
+              icon=""
               title="No appointments found"
               message={search ? `No results matching "${search}".` : "No appointments match the selected filter."}
             />
@@ -218,6 +265,14 @@ export default function InstitutionAppointments() {
                             onClick={() => handleSetStatus(a.id, 'completed')}
                           >✓</button>
                         )}
+                        {a.status === "completed" && (
+                          <button
+                            className="text-xs text-green-700 border border-green-200 bg-green-50 rounded px-2 py-1 hover:bg-green-100"
+                            onClick={() => openFollowUp(a)}
+                          >
+                            Book follow-up
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -228,6 +283,89 @@ export default function InstitutionAppointments() {
           )}
         </div>
       </div>
+      {followUp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="follow-up-title"
+            onSubmit={handleFollowUpSubmit}
+            className="card w-full max-w-md p-5"
+          >
+            <h2 id="follow-up-title" className="text-lg font-semibold text-navy">Book a follow-up</h2>
+            <p className="text-sm text-gray-500 mt-1 mb-4">
+              Schedule a new appointment for {followUp.clientName}.
+            </p>
+            {followUpError && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-4">{followUpError}</div>
+            )}
+            {services.length === 0 ? (
+              <p className="text-sm text-gray-500 mb-4">Add an active service before booking a follow-up.</p>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="follow-up-service" className="block text-xs font-medium text-gray-700 mb-1">Service</label>
+                  <select
+                    id="follow-up-service"
+                    className="input"
+                    required
+                    value={followUpForm.serviceId}
+                    onChange={event => setFollowUpForm(form => ({ ...form, serviceId: event.target.value }))}
+                  >
+                    {services.map(service => <option key={service.id} value={service.id}>{service.name}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="follow-up-date" className="block text-xs font-medium text-gray-700 mb-1">Date</label>
+                    <input
+                      id="follow-up-date"
+                      className="input"
+                      type="date"
+                      min={todayLocal()}
+                      required
+                      value={followUpForm.appointmentDate}
+                      onChange={event => setFollowUpForm(form => ({ ...form, appointmentDate: event.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="follow-up-time" className="block text-xs font-medium text-gray-700 mb-1">Time</label>
+                    <input
+                      id="follow-up-time"
+                      className="input"
+                      type="time"
+                      required
+                      value={followUpForm.appointmentTime}
+                      onChange={event => setFollowUpForm(form => ({ ...form, appointmentTime: event.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="follow-up-notes" className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                  <textarea
+                    id="follow-up-notes"
+                    className="input resize-y"
+                    rows={2}
+                    maxLength={500}
+                    value={followUpForm.notes}
+                    onChange={event => setFollowUpForm(form => ({ ...form, notes: event.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 mt-5">
+              <button type="button" className="btn-secondary text-sm px-4 py-2" onClick={() => setFollowUp(null)}>
+                Cancel
+              </button>
+              {services.length > 0 && (
+                <button type="submit" className="btn-primary text-sm px-4 py-2" disabled={savingFollowUp}>
+                  {savingFollowUp ? "Scheduling..." : "Schedule follow-up"}
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
       {editingAppointment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <form onSubmit={saveEdit} className="card w-full max-w-md p-5">

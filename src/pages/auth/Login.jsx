@@ -76,7 +76,7 @@ export default function LoginPage() {
               <div className="relative">
                 <input className="input pr-10" type={showPw ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
                 <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm" onClick={() => setShowPw(!showPw)}>
-                  {showPw ? '🙈' : '👁'}
+                  {showPw ? 'Hide' : 'Show'}
                 </button>
               </div>
               <div className="text-right mt-1">

@@ -109,7 +109,7 @@ export default function HomePage() {
                   <div className="p-4">
                     <div className="font-semibold text-sm text-gray-900 mb-1">{inst.name}</div>
                     <div className="flex items-center gap-3 text-xs text-gray-500 mb-2">
-                      <span>📍 {inst.address || 'Location not set'}</span>
+                      <span> {inst.address || 'Location not set'}</span>
                     </div>
                     <p className="text-xs text-gray-500 mb-3 leading-relaxed line-clamp-2">{inst.description || 'No description provided.'}</p>
                     <button className="btn-primary w-full text-xs py-1.5" onClick={() => navigate(`/institutions/${inst.id}`)}>View &amp; Book</button>
@@ -127,9 +127,9 @@ export default function HomePage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-8">How it works</h2>
           <div className="grid grid-cols-3 gap-6">
             {[
-              { icon:'🔍', num:'1', title:'Search', desc:'Find your institution by name, category, or location across Kenya.' },
-              { icon:'📅', num:'2', title:'Book',   desc:'Pick your service, choose a date and time slot, and confirm instantly.' },
-              { icon:'✅', num:'3', title:'Show Up', desc:'Arrive at your confirmed time. Your slot is reserved — no more queues.' },
+              { icon:'', num:'1', title:'Search', desc:'Find your institution by name, category, or location across Kenya.' },
+              { icon:'', num:'2', title:'Book',   desc:'Pick your service, choose a date and time slot, and confirm instantly.' },
+              { icon:'', num:'3', title:'Show Up', desc:'Arrive at your confirmed time. Your slot is reserved — no more queues.' },
             ].map(step => (
               <div key={step.num} className="card p-6 text-center">
                 <div className="text-2xl mb-3">{step.icon}</div>

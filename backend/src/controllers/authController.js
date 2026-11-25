@@ -7,7 +7,17 @@ const registerSchema = Joi.object({
   email: Joi.string().email().required(),
   phone: Joi.string().max(30).allow('', null),
   password: Joi.string().min(8).required(),
-  role: Joi.string().valid('client', 'institution_admin', 'staff').default('client'),
+  role: Joi.string().valid('client', 'institution_admin').default('client'),
+  institutionName: Joi.when('role', {
+    is: 'institution_admin',
+    then: Joi.string().min(2).max(150).required(),
+    otherwise: Joi.forbidden(),
+  }),
+  category: Joi.when('role', {
+    is: 'institution_admin',
+    then: Joi.string().max(80).allow('', null),
+    otherwise: Joi.forbidden(),
+  }),
 });
 
 const loginSchema = Joi.object({
@@ -49,6 +59,15 @@ async function login(req, res, next) {
   }
 }
 
+async function resendWelcomeEmail(req, res, next) {
+  try {
+    const emailSent = await authService.resendWelcomeEmail(req.user.id);
+    res.json({ emailSent });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function forgotPassword(req, res, next) {
   try {
     const { error, value } = forgotPasswordSchema.validate(req.body);
@@ -69,8 +88,8 @@ async function resetPassword(req, res, next) {
     const { error, value } = resetPasswordSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    await authService.resetPassword(value);
-    res.json({ message: 'Password has been reset. You can now log in.' });
+    const emailSent = await authService.resetPassword(value);
+    res.json({ message: 'Password has been reset. You can now log in.', emailSent });
   } catch (err) {
     next(err);
   }
@@ -100,8 +119,8 @@ async function updateProfile(req, res, next) {
     const { error, value } = updateProfileSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const user = await authService.updateProfile(req.user.id, value, req.user.role);
-    res.json({ user });
+    const result = await authService.updateProfile(req.user.id, value, req.user.role);
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -112,11 +131,20 @@ async function changePassword(req, res, next) {
     const { error, value } = changePasswordSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    await authService.changePassword(req.user.id, value);
-    res.json({ message: 'Password updated successfully' });
+    const emailSent = await authService.changePassword(req.user.id, value);
+    res.json({ message: 'Password updated successfully', emailSent });
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { register, login, forgotPassword, resetPassword, me, updateProfile, changePassword };
+module.exports = {
+  register,
+  login,
+  resendWelcomeEmail,
+  forgotPassword,
+  resetPassword,
+  me,
+  updateProfile,
+  changePassword,
+};

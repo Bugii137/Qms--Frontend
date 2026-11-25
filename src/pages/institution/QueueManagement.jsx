@@ -73,8 +73,8 @@ export default function QueueManagement() {
                     Now Serving
                   </div>
                   <div className="flex items-center gap-2 mb-2">
-                    {nowServing?.queueNumber && (
-                      <span className="text-xs font-bold text-green-700 bg-green-100 rounded px-1.5 py-0.5">#{nowServing.queueNumber}</span>
+                    {nowServing?.ticketNumber && (
+                      <span className="text-xs font-bold text-green-700 bg-green-100 rounded px-1.5 py-0.5">{nowServing.ticketNumber}</span>
                     )}
                     <div className="text-base font-bold text-gray-900">
                       {nowServing ? nowServing.clientName : '—'}
@@ -104,7 +104,7 @@ export default function QueueManagement() {
                         <div key={w.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
                           <div className="flex items-center gap-2.5">
                             <span className="w-8 h-5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                              {w.queueNumber ? `#${w.queueNumber}` : '—'}
+                              {w.ticketNumber || '—'}
                             </span>
                             <span className="text-sm text-gray-800">{w.clientName}</span>
                           </div>

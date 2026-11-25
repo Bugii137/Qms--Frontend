@@ -40,7 +40,7 @@ export default function ClientDashboard() {
 
         const today = todayLocal()
         const nextInQueue = appointments
-          .filter(a => a.status === 'approved' && a.queueNumber && ymd(a.appointmentDate) >= today)
+          .filter(a => a.status === 'approved' && a.ticketNumber && ymd(a.appointmentDate) >= today)
           .sort((a, b) => (ymd(a.appointmentDate) + a.appointmentTime).localeCompare(ymd(b.appointmentDate) + b.appointmentTime))[0]
 
         if (nextInQueue) setQueueTarget(nextInQueue)
@@ -57,9 +57,9 @@ export default function ClientDashboard() {
     .slice(0, 5)
 
   const kpis = [
-    { label: 'Total Appointments', value: appointments.length, icon: '📅', border: 'border-l-blue-500' },
-    { label: 'Upcoming', value: upcoming.length, icon: '⏰', border: 'border-l-green-brand' },
-    { label: 'Completed', value: appointments.filter(a => a.status === 'completed').length, icon: '✅', border: 'border-l-blue-400' },
+    { label: 'Total Appointments', value: appointments.length, icon: '', border: 'border-l-blue-500' },
+    { label: 'Upcoming', value: upcoming.length, icon: '', border: 'border-l-green-brand' },
+    { label: 'Completed', value: appointments.filter(a => a.status === 'completed').length, icon: '', border: 'border-l-blue-400' },
     { label: 'Cancelled', value: appointments.filter(a => a.status === 'cancelled').length, icon: '✕', border: 'border-l-red-400' },
   ]
 
@@ -71,12 +71,12 @@ export default function ClientDashboard() {
         {/* Welcome banner */}
         <div className="bg-green-brand rounded-xl p-4 flex items-center justify-between mb-5">
           <div>
-            <div className="text-white font-semibold text-base">{greeting()}, {user?.name?.split(' ')[0] || 'there'} 👋</div>
+            <div className="text-white font-semibold text-base">{greeting()}, {user?.name?.split(' ')[0] || 'there'} </div>
             <div className="text-green-50 text-sm mt-0.5">
               {loading ? 'Loading your appointments…' : `You have ${upcoming.length} upcoming appointment${upcoming.length === 1 ? '' : 's'}.`}
             </div>
           </div>
-          <span className="text-4xl opacity-40">📅</span>
+          <span className="text-4xl opacity-40"></span>
         </div>
 
         {/* KPI cards */}
@@ -129,8 +129,8 @@ export default function ClientDashboard() {
             {/* Queue token */}
             {queueTarget && (
               <div className="card p-4 border-l-4 border-l-yellow-400">
-                <h2 className="font-semibold text-gray-800 text-sm mb-3">Your Queue Token</h2>
-                <div className="text-5xl font-bold text-navy text-center mb-1">#{queueTarget.queueNumber}</div>
+                <h2 className="font-semibold text-gray-800 text-sm mb-3">Your Ticket Number</h2>
+                <div className="text-4xl font-bold text-navy text-center mb-1">{queueTarget.ticketNumber}</div>
                 <div className="text-xs text-gray-500 text-center mb-3">Show this number when you arrive — you'll be called when it's your turn.</div>
                 <div className="text-center mb-1">
                   <div className="text-sm font-medium text-gray-800">{queueTarget.institutionName}</div>

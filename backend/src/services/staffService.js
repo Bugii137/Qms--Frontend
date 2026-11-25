@@ -95,10 +95,15 @@ async function create(ownerId, { fullName, email, phone, jobTitle, accessLevel, 
 
     // Best-effort only — the account is already fully usable with the
     // password the admin set, regardless of whether this email sends.
-    const { subject, html } = staffCredentialsEmail(user.full_name, institution.name, user.email);
-    sendEmail({ to: user.email, subject, html });
+    const emailMessage = staffCredentialsEmail(user.full_name, institution.name, user.email);
+    sendEmail({ to: user.email, ...emailMessage });
 
-    return toPublicStaff({ ...rows[0], full_name: user.full_name, email: user.email, phone: user.phone });
+    return toPublicStaff({
+      ...rows[0],
+      full_name: user.full_name,
+      email: user.email,
+      phone: user.phone,
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

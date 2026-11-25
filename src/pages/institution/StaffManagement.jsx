@@ -14,7 +14,7 @@ function initialsOf(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-const EMPTY_FORM = { fullName: "", email: "", phone: "", jobTitle: "Receptionist", access: "Manage Appointments", password: "" };
+const EMPTY_FORM = { fullName: "", email: "", phone: "", jobTitle: "", access: "Manage Appointments", password: "" };
 
 function generatePassword() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -53,8 +53,8 @@ export default function StaffManagement() {
 
   const handleCreate = async () => {
     setFormError("");
-    if (!form.fullName || !form.email || !form.password) {
-      setFormError("Full name, email, and password are required.");
+    if (!form.fullName || !form.email || !form.jobTitle.trim() || !form.password) {
+      setFormError("Full name, email, job title, and password are required.");
       return;
     }
     if (form.password.length < 8) {
@@ -228,7 +228,7 @@ export default function StaffManagement() {
                     <label className="block text-xs text-gray-500">Full name<input className="input text-sm mt-1" required minLength={2} value={editForm.fullName} onChange={e => setEditForm(f => ({ ...f, fullName: e.target.value }))} /></label>
                     <label className="block text-xs text-gray-500">Email<input className="input text-sm mt-1" required type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} /></label>
                     <label className="block text-xs text-gray-500">Phone<input className="input text-sm mt-1" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></label>
-                    <label className="block text-xs text-gray-500">Job title<select className="input text-sm mt-1" value={editForm.jobTitle} onChange={e => setEditForm(f => ({ ...f, jobTitle: e.target.value }))}>{["Receptionist","Doctor","Nurse","Lab Technician","Administrator"].map(title => <option key={title}>{title}</option>)}</select></label>
+                    <label className="block text-xs text-gray-500">Job title / role<input className="input text-sm mt-1" required minLength={2} maxLength={50} placeholder="e.g. Teller, Nurse, Branch Manager" value={editForm.jobTitle} onChange={e => setEditForm(f => ({ ...f, jobTitle: e.target.value }))} /></label>
                     <label className="block text-xs text-gray-500">Access level<select className="input text-sm mt-1" value={editForm.access} onChange={e => setEditForm(f => ({ ...f, access: e.target.value }))}>{["View Only","Manage Appointments","Full Access"].map(level => <option key={level}>{level}</option>)}</select></label>
                   </div>
                   <div className="flex justify-end gap-2 mt-5">
@@ -253,10 +253,17 @@ export default function StaffManagement() {
                 <input className="input text-sm" placeholder="+254 7XX XXX XXX" value={form.phone} onChange={set("phone")} />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Role</label>
-                <select className="input text-sm" value={form.jobTitle} onChange={set("jobTitle")}>
-                  {["Receptionist","Doctor","Nurse","Lab Technician","Administrator"].map(r => <option key={r}>{r}</option>)}
-                </select>
+                <label className="block text-xs text-gray-500 mb-1">Job title / role</label>
+                <input
+                  className="input text-sm"
+                  placeholder="e.g. Teller, Nurse, Branch Manager"
+                  value={form.jobTitle}
+                  onChange={set("jobTitle")}
+                  required
+                  minLength={2}
+                  maxLength={50}
+                />
+                <p className="text-[11px] text-gray-400 mt-1">Enter a title that fits this institution. Access level below controls system permissions.</p>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Access Level</label>

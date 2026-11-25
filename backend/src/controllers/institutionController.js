@@ -99,8 +99,8 @@ async function setStatus(req, res, next) {
     const { error, value } = statusSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const institution = await institutionService.setStatus(req.params.id, value.status);
-    res.json({ institution });
+    const result = await institutionService.setStatus(req.params.id, value.status);
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -130,7 +130,7 @@ async function updateForSystemAdmin(req, res, next) {
 
 async function deleteForSystemAdmin(req, res, next) {
   try {
-    const institution = await institutionService.setStatus(req.params.id, 'suspended');
+    const { institution } = await institutionService.setStatus(req.params.id, 'suspended');
     res.json({ institution });
   } catch (err) {
     next(err);

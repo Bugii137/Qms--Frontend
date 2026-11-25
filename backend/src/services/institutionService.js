@@ -1,5 +1,8 @@
 const { query } = require('../db');
 const { AppError } = require('../middleware/errorHandler');
+const notificationService = require('./notificationService');
+const { sendEmail } = require('../config/email');
+const { institutionStatusEmail } = require('../utils/emailTemplates');
 
 function toPublicInstitution(row) {
   return {
@@ -217,12 +220,39 @@ async function setStatus(institutionId, status) {
   }
 
   const { rows } = await query(
-    `UPDATE institutions SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+    `UPDATE institutions
+     SET status = $1, updated_at = NOW()
+     WHERE id = $2 AND status IS DISTINCT FROM $1
+     RETURNING *`,
     [status, institutionId]
   );
 
-  if (!rows[0]) throw new AppError('Institution not found', 404);
-  return toPublicInstitution(rows[0]);
+  let institution = rows[0];
+  if (!institution) {
+    const { rows: existingRows } = await query('SELECT * FROM institutions WHERE id = $1', [institutionId]);
+    if (!existingRows[0]) throw new AppError('Institution not found', 404);
+    return { institution: toPublicInstitution(existingRows[0]), emailSent: null };
+  }
+
+  const approved = status === 'active';
+  const { rows: ownerRows } = await query(
+    'SELECT full_name, email FROM users WHERE id = $1',
+    [institution.owner_id]
+  );
+  if (!ownerRows[0]) throw new AppError('Institution owner not found', 404);
+
+  await notificationService.create(institution.owner_id, {
+    type: 'institution',
+    title: approved ? 'Institution application approved' : 'Institution status updated',
+    message: approved
+      ? `Your application for ${institution.name} has been approved. You can now sign in.`
+      : `The status of ${institution.name} is now ${status}.`,
+  });
+
+  const email = institutionStatusEmail(ownerRows[0].full_name, institution.name, status);
+  const emailInfo = await sendEmail({ to: ownerRows[0].email, ...email });
+
+  return { institution: toPublicInstitution(institution), emailSent: Boolean(emailInfo) };
 }
 
 module.exports = {

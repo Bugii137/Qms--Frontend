@@ -104,7 +104,7 @@ export default function StaffAppointments() {
           </div>
           {!allowed && (
             <span className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg font-medium">
-              👁 View Only
+               View Only
             </span>
           )}
         </div>
@@ -117,7 +117,7 @@ export default function StaffAppointments() {
           {loading ? (
             <div className="py-14 text-center text-sm text-gray-400">Loading…</div>
           ) : appointments.length === 0 ? (
-            <EmptyState icon="📋" title="No appointments found" message="Nothing has been booked for your institution yet." />
+            <EmptyState icon="" title="No appointments found" message="Nothing has been booked for your institution yet." />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

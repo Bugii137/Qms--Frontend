@@ -1,4 +1,4 @@
-export default function EmptyState({ icon = '📭', title, message, action }) {
+export default function EmptyState({ icon = '', title, message, action }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
       <div className="text-4xl mb-3 opacity-60">{icon}</div>
